@@ -221,6 +221,20 @@ Analyze:     flutter analyze               # MCP: analyze_files
 Pub:         dart pub get
 ```
 
+## Versioning
+
+Plan files are **coupled to app release milestones**:
+
+- `docs/plan/plan_vX.Y.Z.md` is a milestone contract for release `X.Y.Z`. A feature
+  belongs to version `X.Y.Z` iff its tasks live in that file; there is no other registry.
+- Patch versions exist for milestone fixes; a plan file is written for one only when the
+  fix is substantial enough to need tasks.
+- The plan filename never changes once work begins. Mid-flight re-scopes are recorded in
+  a `## Revisions` note at the top of the file; unstarted tasks may move to the next
+  milestone's plan. A task with commits stays where it landed.
+- Numbering while `0.x`: minor = feature milestone, patch = fixes. `1.0.0` when the
+  public surface (config format, CLI flags) is worth promising stability for.
+
 ## Code Style
 
 - `flutter_lints` (`analysis_options.yaml`), `dart format`, no deviations without reason.

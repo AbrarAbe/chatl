@@ -276,4 +276,4 @@ streaming with a `/render markdown` toggle that renders-on-complete.
 
 1. Streaming-renderer spike (day 1, timeboxed 2–3 days) → confirms or kills the risky module
 2. `docs/spec.md` — living spec, promoted from this doc
-3. `docs/plan/plan_v0.1.md` — ordered tasks from the MVP scope above
+3. `docs/plan/plan_v0.1.0.md` — ordered tasks from the MVP scope above
