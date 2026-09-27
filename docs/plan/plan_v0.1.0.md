@@ -31,7 +31,11 @@ product commits.
 
 ### Phase 0 — Risk-kill spike
 
-- [ ] **Task 0: Streaming-markdown spike (timeboxed, throwaway)**
+- [x] **Task 0: Streaming-markdown spike** — DONE 2026-09-27, throwaway branch
+      `spike/markdown-renderer` (not merged). Decision + evidence: ADR 0003 —
+      incremental last-block renderer approved (bench p95 0.47 ms vs whole-doc 12.2 ms),
+      `/render markdown` escape hatch retired. Note: interactive eyeball (manual TUI run)
+      not performed; automated proofs only.
   - **Goal:** Prove or kill the custom incremental renderer in nocterm **before**
     committing to it (spec §Key Assumptions #1, §Risk Module).
   - **Acceptance:** A throwaway app on branch `spike/markdown-renderer` streams synthetic
@@ -46,7 +50,7 @@ product commits.
 
 ### Checkpoint: Spike
 
-- [ ] ADR 0003 written; Task 13's path confirmed.
+- [x] ADR 0003 written; Task 13's path confirmed (incremental last-block renderer).
 
 ---
 
@@ -199,10 +203,11 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Files:** `lib/src/resolve/**`, tests.
   - **Scope:** S · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 13: Markdown rendering**
-  - **Description:** Path from ADR 0003: (a) incremental renderer — AST via
-    `package:markdown`, re-render only the last block, handle unclosed fences and
-    half-streamed tables; or (b) escape hatch — plain-text streaming + `/render markdown`
-    toggle rendering on completion. `ui.markdown: false` disables either way.
+  - **Description:** Incremental renderer per ADR 0003 — AST via
+    `package:markdown`, re-render only the last block (block boundaries: blank line
+    outside fenced code; unclosed fences and half-streamed tables stay in the open
+    block), frozen blocks immutable (keyed `MarkdownText`), ~30fps coalescing.
+    `ui.markdown: false` forces plain text.
   - **Acceptance:** Golden-string tests over the corpus: headings, lists, emphasis, code
     fences (closed + unclosed), tables (complete + half-streamed); no visual corruption
     in manual stream run (spec Success #3).
@@ -248,7 +253,6 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 ## Open Questions
 
-- Task 13's path (incremental vs escape hatch) — resolved by Task 0/ADR 0003 before
-  Phase 3 begins.
+- Task 13's path — **resolved (ADR 0003)**: incremental last-block renderer.
 - Exact frame-coalescing interval (30 vs 60fps) — tune during Task 5, record in ADR if
   non-obvious.

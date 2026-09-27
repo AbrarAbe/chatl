@@ -195,8 +195,8 @@ Known TUI-chat bugs to budget for:
 - **Auto-scroll anchoring** — scroll unless the user scrolled up manually.
 - SSE sharp edges (above).
 
-**Escape hatch:** timebox streaming markdown to 2–3 days. If unacceptable, ship plain-text
-streaming with a `/render markdown` toggle that renders on complete.
+**timebox note:** resolved by spike → ADR 0003 (incremental renderer viable; escape
+hatch retired).
 
 ## Tech Stack
 
@@ -324,9 +324,12 @@ v1 is done when all of the following hold:
 
 ## Key Assumptions to Validate
 
-- [ ] `package:markdown` + custom renderer hits acceptable streaming latency in nocterm.
-      **Validate day 1 with a throwaway spike, not after.**
-- [ ] nocterm `ListView` / scroll anchoring behaves sanely under ~30fps repaint.
+- [x] `package:markdown` + custom renderer hits acceptable streaming latency in nocterm
+      — **validated by spike** (ADR 0003: last-block reparse p95 0.47 ms vs whole-doc
+      12.2 ms; whole-doc must not be used for the live block).
+- [~] nocterm `ListView` / scroll anchoring behaves sanely under ~30fps repaint —
+      **partially validated** (ADR 0003: mechanism works headlessly; anchor must release
+      on any upward scroll, implemented in Task 5 of plan_v0.1.0).
 - [ ] Fork-on-edit alone is enough after ~500 real messages (missing branch-switch-back UI
       won't bite immediately).
 - [ ] `drift`/`sqlite3` FFI is painless on Linux and Windows.
