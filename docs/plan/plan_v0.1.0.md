@@ -91,7 +91,10 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/config/`.
   - **Files:** `lib/src/config/*.dart`, `test/config/*.dart`.
   - **Scope:** M · direct bundle branch · TDD · `dart-add-unit-test`.
-- [ ] **Task 3: Provider seam + OpenAI-compatible SSE client**
+- [x] **Task 3: Provider seam + OpenAI-compatible SSE client** — DONE on
+      `feature/mvp-v0.1.0`. TDD, 12 tests: SSE parser (split chunks, multi-line data,
+      keepalives, `[DONE]`, CRLF, trailing event), provider mapping/error/usage,
+      `FakeProvider` replay.
   - **Description:** `ChatEvent`/`StreamRequest` value types (non-text-capable
     `ChatEventKind`), robust SSE parser (keepalive comments, `[DONE]`, partial chunks,
     multi-line `data:` — no hand-rolled line splitting), `OpenAiCompatProvider`
