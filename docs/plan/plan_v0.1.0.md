@@ -163,7 +163,11 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/state/`.
   - **Files:** `lib/src/state/**`, `test/state/*`, `build.yaml` if codegen config needed.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test` (in-memory sqlite).
-- [ ] **Task 7: `SessionStore` fork ops**
+- [x] **Task 7: `SessionStore` fork ops** — DONE on `feature/mvp-v0.1.0`. TDD,
+      6 tests: empty branch, linear walk, fork+setHead, branch isolation,
+      fork-of-fork, unknown-message error. Design note: `appendMessage`
+      defaults its parent to the current head and advances it
+      (`advanceHead: false` for forks); forks never move the head themselves.
   - **Description:** `activeBranch` (walk `parent_id` to `active_head_id`), `forkAt`
     (new id, reparent), `setHead` — the ~10-line core of fork-on-edit.
   - **Acceptance:** Unit tests: linear history, single fork, fork-of-fork, head switch,
