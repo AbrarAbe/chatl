@@ -79,7 +79,10 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Scope:** M · branch: `feature/mvp-v0.1.0` · smoke test after (scaffolding task,
     tests-after allowed) · deps added: list quoted to user at Step 6 gate (Ask-first
     boundary).
-- [ ] **Task 2: Config layer**
+- [x] **Task 2: Config layer** — DONE on `feature/mvp-v0.1.0`. TDD: 9 tests
+      (defaults, full parse, `$VAR`/`${VAR}` interpolation + unset-var warning,
+      invalid-YAML line info, unknown-key warning, per-key type/location errors).
+      Spec note: `api_key` (env-interpolated) added to model profiles.
   - **Description:** Load/validate/normalize `~/.config/chatl/config.yaml`:
     `models`/`persona`/`ui`/`commands` sections, `$ENV` interpolation, defaults when the
     file is absent, actionable error messages with YAML location on invalid input.

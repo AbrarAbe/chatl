@@ -118,6 +118,7 @@ models:
   default: gpt-4o
   cheap: { model: gpt-4o-mini }
   local: { base_url: http://localhost:11434/v1, model: qwen2.5 }
+  openai: { model: gpt-4o, base_url: https://api.openai.com/v1, api_key: $OPENAI_API_KEY }
 persona:
   default: "Concise technical assistant. Terse. No preamble."
   review: "Act as a skeptical code reviewer. Flag the bad ideas."
