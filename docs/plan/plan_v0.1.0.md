@@ -12,7 +12,7 @@ contract — a feature is in 0.1.0 iff its task is here.
   data-model branching from the start, fork-on-edit UX only in v1. (spec §Data model)
 - Custom incremental markdown renderer on `package:markdown`'s AST; **validated by the
   Phase 0 spike before any renderer task starts**. Escape hatch: plain-text streaming +
-  `/render markdown` toggle.
+  `/render markdown` toggle. (Framework: nocterm, ADR 0002.)
 - `@` resolver pipeline ships in v1 as **pure passthrough plumbing** (parse, reserved-name
   registry, visible-failure convention) with zero registered resolvers — so
   `@fetch`/`@search` (post-v1) are features, not rework.
@@ -32,39 +32,42 @@ product commits.
 ### Phase 0 — Risk-kill spike
 
 - [ ] **Task 0: Streaming-markdown spike (timeboxed, throwaway)**
-  - **Goal:** Prove or kill the custom incremental renderer in `flutter_tui` **before**
+  - **Goal:** Prove or kill the custom incremental renderer in nocterm **before**
     committing to it (spec §Key Assumptions #1, §Risk Module).
   - **Acceptance:** A throwaway app on branch `spike/markdown-renderer` streams synthetic
     chunks through `package:markdown` + a minimal block renderer; re-renders only the last
     block; handles unclosed code fences and half-streamed tables; scroll anchor holds
     while streaming at ~30fps.
-  - **Decision output (ADR 0002):** incremental renderer **viable** → Task 13 proceeds;
+  - **Decision output (ADR 0003):** incremental renderer **viable** → Task 13 proceeds;
     **not viable** within the 2–3 day timebox → ship plain-text streaming + `/render
     markdown` toggle (record in spec §Risk Module as the resolved path).
-  - **Verify:** manual timing run; decision recorded in `docs/adr/0002-*.md`.
+  - **Verify:** manual timing run; decision recorded in `docs/adr/0003-*.md`.
   - **Scope:** S · throwaway branch, no DoD, no `flutter test` requirement · no TDD.
 
 ### Checkpoint: Spike
 
-- [ ] ADR 0002 written; Task 13's path confirmed.
+- [ ] ADR 0003 written; Task 13's path confirmed.
 
 ---
 
 ### Phase 1 — Walking skeleton (plain-text chat end-to-end)
 
-Record the `flutter test` baseline at the start of Task 1 (scaffold has no tests;
+Record the `dart test` baseline at the start of Task 1 (scaffold has no tests;
 baseline is expected empty/green). Quote it in the plan entry.
 
 - [ ] **Task 1: Project skeleton + dependencies**
-  - **Description:** Add dependencies (`flutter_tui`, `drift` + sqlite transport,
-    `markdown`, `yaml`, `args`, `http`, `path`), create the `lib/src/{config,providers,
-    state,session,commands,resolve,ui,ui/render}` layout, add `test/` mirror, replace
-    `lib/main.dart` with a minimal entrypoint.
-  - **Acceptance:** `flutter analyze` clean; `flutter test` green (baseline + smoke test);
-    `flutter run -d linux` opens the empty app shell.
+  - **Description:** Restructure into a pure-Dart console package (ADR 0002): remove the
+    unused `linux/`/`windows/` desktop runners, move the entrypoint to `bin/chatl.dart`,
+    swap `flutter_test` for `package:test` (+ `nocterm_test` when widgets land). Add
+    dependencies (`nocterm`, `drift` + sqlite transport, `markdown`, `yaml`, `args`,
+    `http`, `path`), create the `lib/src/{config,providers,state,session,commands,
+    resolve,ui,ui/render}` layout with `test/` mirror.
+  - **Acceptance:** `dart analyze` clean; `dart test` green (baseline + smoke test);
+    `dart run bin/chatl.dart` opens the empty app shell.
   - **Verify:** commands above.
-  - **Files:** `pubspec.yaml`, `lib/main.dart`, `lib/src/**` stubs, `test/smoke_test.dart`.
-  - **Scope:** M · branch: `feature/mvp-v0.1.0` · smoke widget test after (UI/layout task,
+  - **Files:** `pubspec.yaml`, `bin/chatl.dart`, `lib/src/**` stubs, `test/smoke_test.dart`,
+    deletion of `linux/` `windows/` `lib/main.dart`.
+  - **Scope:** M · branch: `feature/mvp-v0.1.0` · smoke test after (scaffolding task,
     tests-after allowed) · deps added: list quoted to user at Step 6 gate (Ask-first
     boundary).
 - [ ] **Task 2: Config layer**
@@ -73,7 +76,7 @@ baseline is expected empty/green). Quote it in the plan entry.
     file is absent, actionable error messages with YAML location on invalid input.
   - **Acceptance:** All valid/invalid fixtures from the spec §Config Surface parse
     correctly; `$ENV` expands; missing file → defaults; unknown keys warn, don't fail.
-  - **Verify:** `flutter test test/config/`.
+  - **Verify:** `dart test test/config/`.
   - **Files:** `lib/src/config/*.dart`, `test/config/*.dart`.
   - **Scope:** M · direct bundle branch · TDD · `dart-add-unit-test`.
 - [ ] **Task 3: Provider seam + OpenAI-compatible SSE client**
@@ -83,7 +86,7 @@ baseline is expected empty/green). Quote it in the plan entry.
     implementing `Provider`, `FakeProvider` for tests.
   - **Acceptance:** Table-driven SSE fixtures pass (incl. malformed/edge inputs);
     `FakeProvider` replays scripted streams; real client parses a captured OpenAI stream.
-  - **Verify:** `flutter test test/providers/`.
+  - **Verify:** `dart test test/providers/`.
   - **Files:** `lib/src/providers/{provider.dart,openai_compat.dart,sse.dart}`,
     `test/providers/*`.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test` (+ `dart-generate-test-mocks` for
@@ -94,20 +97,21 @@ baseline is expected empty/green). Quote it in the plan entry.
     switchable model/persona state. No persistence yet.
   - **Acceptance:** Unit tests against `FakeProvider` cover: send→stream→complete, error
     event surfaces in transcript, model/persona switch applies to next request only.
-  - **Verify:** `flutter test test/session/`.
+  - **Verify:** `dart test test/session/`.
   - **Files:** `lib/src/session/*.dart`, `test/session/*`.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 5: Chat UI shell (plain-text streaming)**
-  - **Description:** `flutter_tui` app: input line with `prompt_prefix`, scrollback list
+  - **Description:** nocterm app: input line with `prompt_prefix`, scrollback list
     with **auto-scroll anchoring** (scroll unless user scrolled up), streaming append with
     frame coalescing (~30–60fps, never per-token setState), theme from config. Plain text
     only — markdown is Task 13.
-  - **Acceptance:** Widget tests: input submit, streamed append renders coalesced,
-    anchor releases on scroll-up and re-engages at bottom; manual run against a local
-    mock endpoint feels responsive.
-  - **Verify:** `flutter test test/ui/`; manual smoke against `FakeProvider`-driven run.
-  - **Files:** `lib/src/ui/**` (widgets extracted per one-widget-per-file rule),`test/ui/*`.
-  - **Scope:** L · bundle · widget tests (`flutter-add-widget-test`); render-loop behavior
+  - **Acceptance:** Widget tests (`nocterm_test`): input submit, streamed append renders
+    coalesced, anchor releases on scroll-up and re-engages at bottom; manual run against a
+    local mock endpoint feels responsive.
+  - **Verify:** `dart test test/ui/`; manual smoke against `FakeProvider`-driven run.
+  - **Files:** `lib/src/ui/**` (widgets extracted per one-widget-per-file rule),
+    `test/ui/*`.
+  - **Scope:** L · bundle · widget tests (`nocterm_test`); render-loop behavior
     covered by unit tests on the coalescer.
 
 ### Checkpoint: Walking skeleton
@@ -115,7 +119,7 @@ baseline is expected empty/green). Quote it in the plan entry.
 - [ ] A real (or local OpenAI-compatible) endpoint chats end-to-end in plain text.
 - [ ] First token visible within ~2s of send on a healthy endpoint (spec Success #1,
       streaming part).
-- [ ] `flutter analyze` clean; `flutter test` green vs baseline.
+- [ ] `dart analyze` clean; `dart test` green vs baseline.
 
 ---
 
@@ -126,7 +130,7 @@ baseline is expected empty/green). Quote it in the plan entry.
     as nullable JSON), generated drift code, migration runner pinned to v1 schema.
   - **Acceptance:** CRUD round-trips against in-memory sqlite; schema version recorded;
     `sources` accepts null and JSON list.
-  - **Verify:** `flutter test test/state/`.
+  - **Verify:** `dart test test/state/`.
   - **Files:** `lib/src/state/**`, `test/state/*`, `build.yaml` if codegen config needed.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test` (in-memory sqlite).
 - [ ] **Task 7: `SessionStore` fork ops**
@@ -134,7 +138,7 @@ baseline is expected empty/green). Quote it in the plan entry.
     (new id, reparent), `setHead` — the ~10-line core of fork-on-edit.
   - **Acceptance:** Unit tests: linear history, single fork, fork-of-fork, head switch,
     branch isolation (editing A doesn't touch B).
-  - **Verify:** `flutter test test/state/`.
+  - **Verify:** `dart test test/state/`.
   - **Files:** `lib/src/state/session_store.dart`, tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 8: Persisted sessions + resume CLI**
@@ -144,8 +148,8 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Acceptance:** Restart → `--continue` restores the transcript byte-identically
     (spec Success #4); `--session <id>` opens that session's active branch; title follows
     the truncated-first-message rule.
-  - **Verify:** `flutter test test/session/ test/state/`; manual restart check.
-  - **Files:** `lib/main.dart`, `lib/src/session/*`, `lib/src/state/*`, tests.
+  - **Verify:** `dart test test/session/ test/state/`; manual restart check.
+  - **Files:** `bin/chatl.dart`, `lib/src/session/*`, `lib/src/state/*`, tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 9: Fork-on-edit UX + `/history`**
   - **Description:** Edit a prior message → `forkAt` + `setHead` automatically; `/history`
@@ -153,14 +157,14 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Acceptance:** Editing mid-conversation creates an alternative branch and the old
     branch is untouched; `/history` lists current-branch messages in order; state
     persists across restart (spec Success #5).
-  - **Verify:** `flutter test` (store + session level); manual UI check.
+  - **Verify:** `dart test` (store + session level); manual UI check.
   - **Files:** `lib/src/ui/**`, `lib/src/session/*`, tests.
   - **Scope:** M · bundle · TDD for logic; tests-after for pure layout.
 
 ### Checkpoint: Persistence & branching
 
 - [ ] Spec Success Criteria #4 and #5 demonstrably hold (restart, resume, fork, history).
-- [ ] `flutter analyze` clean; tests green vs baseline.
+- [ ] `dart analyze` clean; tests green vs baseline.
 
 ---
 
@@ -173,7 +177,7 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Acceptance:** Each built-in behaves per spec §Interaction Model; config-defined
     `/recap`-style entries submit their prompt against the conversation; unknown `/x`
     errors visibly.
-  - **Verify:** `flutter test test/commands/`.
+  - **Verify:** `dart test test/commands/`.
   - **Files:** `lib/src/commands/**`, tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 11: `/model` and `/persona` mid-conversation switching**
@@ -181,7 +185,7 @@ baseline is expected empty/green). Quote it in the plan entry.
     Decisions); applies from next turn; reflected in `/context`.
   - **Acceptance:** Switching either axis affects only subsequent requests; invalid names
     error visibly; session row updates.
-  - **Verify:** `flutter test test/commands/ test/session/`.
+  - **Verify:** `dart test test/commands/ test/session/`.
   - **Files:** `lib/src/commands/*`, `lib/src/session/*`, tests.
   - **Scope:** S · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 12: `@` resolver pipeline (passthrough)**
@@ -191,18 +195,18 @@ baseline is expected empty/green). Quote it in the plan entry.
     syntax.
   - **Acceptance:** Unit tests: pass-through of unknown tokens (incl. email addresses),
     no registered resolver shadows unknown names, resolver output ordering deterministic.
-  - **Verify:** `flutter test test/resolve/`.
+  - **Verify:** `dart test test/resolve/`.
   - **Files:** `lib/src/resolve/**`, tests.
   - **Scope:** S · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 13: Markdown rendering**
-  - **Description:** Path from ADR 0002: (a) incremental renderer — AST via
+  - **Description:** Path from ADR 0003: (a) incremental renderer — AST via
     `package:markdown`, re-render only the last block, handle unclosed fences and
     half-streamed tables; or (b) escape hatch — plain-text streaming + `/render markdown`
     toggle rendering on completion. `ui.markdown: false` disables either way.
   - **Acceptance:** Golden-string tests over the corpus: headings, lists, emphasis, code
     fences (closed + unclosed), tables (complete + half-streamed); no visual corruption
     in manual stream run (spec Success #3).
-  - **Verify:** `flutter test test/ui/render/`; manual stream check.
+  - **Verify:** `dart test test/ui/render/`; manual stream check.
   - **Files:** `lib/src/ui/render/**`, tests.
   - **Scope:** L · bundle · TDD on renderer (golden strings), widget tests for the toggle
     path.
@@ -211,7 +215,7 @@ baseline is expected empty/green). Quote it in the plan entry.
     through to the shell; token display polish; final UI consistency pass.
   - **Acceptance:** Each `ui.*` config key has visible effect; absence falls back to
     defaults.
-  - **Verify:** `flutter test test/ui/`; manual visual pass.
+  - **Verify:** `dart test test/ui/`; manual visual pass.
   - **Files:** `lib/src/ui/**`, tests.
   - **Scope:** S · bundle · tests-after for pure layout.
 
@@ -220,7 +224,7 @@ baseline is expected empty/green). Quote it in the plan entry.
 - [ ] Every [Success Criterion](../spec.md#success-criteria) in `docs/spec.md` holds, with
       evidence quoted.
 - [ ] All four Key Assumptions each validated or have a documented fallback here.
-- [ ] `flutter analyze` clean; `flutter test` green relative to the Task 1 baseline.
+- [ ] `dart analyze` clean; `dart test` green relative to the Task 1 baseline.
 - [ ] `docs/spec.md` matches shipped behavior; ADRs written for Task 0/13's rendering
       decision and any other non-obvious call.
 - [ ] Every checkbox above ticked; bundle merged `feature/mvp-v0.1.0` → `main`.
@@ -229,8 +233,8 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Incremental markdown renderer too slow/janky in `flutter_tui` | High | Task 0 spike, 2–3 day timebox, `/render markdown` escape hatch (ADR 0002) |
-| `flutter_tui` maturity (scroll anchoring, repaint behavior) on Linux/Windows | High | Assumption validated in Tasks 0/5; fallback: evaluate alternate TUI path early, before Phase 2 |
+| Incremental markdown renderer too slow/janky in nocterm | High | Task 0 spike, 2–3 day timebox, `/render markdown` escape hatch (ADR 0003) |
+| nocterm maturity (scroll anchoring, repaint behavior) | High | Assumption validated in Tasks 0/5; fallback: evaluate `termui` early, before Phase 2 (ADR 0002) |
 | `drift`/`sqlite3` FFI pain on Windows | Med | Task 6 early in Phase 2; fall back to `sqlite3` package directly |
 | SSE edge cases corrupt streams | Med | Task 3 table-driven fixtures incl. captured real streams; no hand-rolled splitting |
 | Per-token rebuilds tank frame rate | Med | Coalescer unit-tested in Task 5; manual responsiveness gate at Checkpoint 1 |
@@ -244,7 +248,7 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 ## Open Questions
 
-- Task 13's path (incremental vs escape hatch) — resolved by Task 0/ADR 0002 before
+- Task 13's path (incremental vs escape hatch) — resolved by Task 0/ADR 0003 before
   Phase 3 begins.
 - Exact frame-coalescing interval (30 vs 60fps) — tune during Task 5, record in ADR if
   non-obvious.

@@ -71,7 +71,7 @@ lib/src/
   session/      orchestration: session ⇄ state ⇄ provider
   commands/     slash registry (built-in + from config)
   resolve/      @-mention resolver layer (client-side, pre-request)
-  ui/           flutter_tui app, screens, theme, widgets/
+  ui/           nocterm app, screens, theme, widgets/
   ui/render/    incremental markdown → terminal text   ← the risk module
 test/           mirrors lib/src structure (see Testing Strategy)
 ```
@@ -184,10 +184,10 @@ moves to the edited message. No DAG navigation UI in v1.
 
 ## The Risk Module (streaming markdown renderer)
 
-`flutter_markdown` will not work — it renders into Flutter's widget tree while
-`flutter_tui` paints a text buffer. A custom renderer (~200 lines) uses `package:markdown`
-for the AST and re-renders **only the last block** per frame. Handle explicitly: unclosed
-fenced code blocks, half-streamed tables.
+Widget-tree markdown renderers (e.g. `flutter_markdown`) will not work — they render
+into a Flutter widget tree while nocterm paints a text buffer. A custom renderer
+(~200 lines) uses `package:markdown` for the AST and re-renders **only the last block**
+per frame. Handle explicitly: unclosed fenced code blocks, half-streamed tables.
 
 Known TUI-chat bugs to budget for:
 
@@ -202,22 +202,26 @@ streaming with a `/render markdown` toggle that renders on complete.
 
 | Concern | Choice |
 | --- | --- |
-| Language / UI | Dart `^3.14.0-211.1.beta` / Flutter (`flutter_tui`) |
+| Language / UI | Dart `^3.14.0-211.1.beta`, console app via `nocterm` (ADR 0002) |
 | State | SQLite via `drift` |
 | Markdown | `package:markdown` (Dart AST) + custom terminal renderer |
 | Transport | SSE over HTTP against OpenAI-compatible `/chat/completions` |
 | Config | YAML, `~/.config/chatl/config.yaml` |
-| Targets | Linux, Windows |
+| Targets | Linux, Windows terminals |
 
-Dependencies not yet in `pubspec.yaml` (add per plan): `flutter_tui`, `drift`,
+Dependencies not yet in `pubspec.yaml` (add per plan): `nocterm`, `drift`,
 `drift_flutter` or sqlite3 transport, `markdown`, `yaml`, `args`, `http`.
+Test-only: `test`, `mockito`/`build_runner` if mocks are codegen'd, `nocterm_test`.
+
+The project runs as a **pure Dart console package** (`dart run`); the Flutter desktop
+scaffold (`linux/`, `windows/`, `flutter_test`) does not apply (ADR 0002).
 
 ## Commands
 
 ```
-Run (dev):   flutter run -d linux          # or: -d windows
-Test:        flutter test
-Analyze:     flutter analyze               # MCP: analyze_files
+Run (dev):   dart run bin/chatl.dart       # or compiled: dart compile exe bin/chatl.dart
+Test:        dart test
+Analyze:     dart analyze                  # MCP: analyze_files
 Pub:         dart pub get
 ```
 
@@ -263,19 +267,19 @@ final class FakeProvider implements Provider {
 
 ## Testing Strategy
 
-| Layer | Test type | Skill |
+| Concern | Test type | Skill |
 | --- | --- | --- |
-| Config load/validate/normalize | Unit (`package:test` via flutter_test) | `dart-add-unit-test` |
+| Config load/validate/normalize | Unit (`package:test`) | `dart-add-unit-test` |
 | `@` resolvers (mock fetch/search) | Unit + mocks | `dart-generate-test-mocks` |
 | SSE parser (keepalives, `[DONE]`, partial chunks) | Unit, table-driven fixtures | `dart-add-unit-test` |
 | Store fork ops (`forkAt`, `activeBranch`, `setHead`) | Unit against in-memory sqlite | `dart-add-unit-test` |
 | Markdown renderer (partial blocks, code fences, tables) | Unit (snapshot-style golden strings) | `dart-add-unit-test` |
 | Session orchestration | Unit against `FakeProvider` stream | `dart-add-unit-test` |
-| Chat screen widgets | Widget tests | `flutter-add-widget-test` |
-| End-to-end happy path | Integration (optional in v1) | `flutter-add-integration-test` |
+| Chat screen widgets | Widget tests (`nocterm_test`) | — |
+| End-to-end happy path | Integration (optional in v1) | — |
 
-- **Baseline:** recorded before implementation; "done" means green relative to baseline,
-  no new failures or skips.
+- **Baseline:** recorded before implementation (`dart test`); "done" means green relative
+  to baseline, no new failures or skips.
 - TDD (red→green) for all logic/data layers; tests-after acceptable for pure layout.
 - No coverage % gate in v1; the layers above must each have meaningful tests.
 
@@ -284,7 +288,7 @@ final class FakeProvider implements Provider {
 **Always do:**
 - Run `impact` before editing any symbol; `detect_changes` before any commit (GitNexus gates).
 - Validate and normalize config at startup; fail with actionable YAML-caret messages.
-- Record the `flutter test` baseline before implementing a task.
+- Record the `dart test` baseline before implementing a task.
 - Delineate fetched content **structurally** (`[CONTEXT ...]` blocks), never just by a
   prompt comment — prompt injection from fetched pages is the realistic attack.
 
@@ -304,8 +308,8 @@ final class FakeProvider implements Provider {
 
 v1 is done when all of the following hold:
 
-1. `flutter run -d linux` starts a chat against the configured default model with streamed
-   responses; first token renders within ~2s of send on a healthy endpoint.
+1. `dart run bin/chatl.dart` starts a chat against the configured default model with
+   streamed responses; first token renders within ~2s of send on a healthy endpoint.
 2. Every MVP feature in [MVP Scope](#mvp-scope-v1) works and is exercised by at least one
    test (logic layers) or manual checklist item (pure UI).
 3. Streaming markdown renders without visual corruption across: code fences
@@ -316,13 +320,13 @@ v1 is done when all of the following hold:
 5. Editing mid-conversation then resuming persists correctly across app restarts.
 6. All four [Key Assumptions](#key-assumptions-to-validate) are validated or have a
    documented fallback in `docs/plan/`.
-7. `flutter analyze` clean; `flutter test` green relative to baseline.
+7. `dart analyze` clean; `dart test` green relative to baseline.
 
 ## Key Assumptions to Validate
 
-- [ ] `package:markdown` + custom renderer hits acceptable streaming latency in
-      `flutter_tui`. **Validate day 1 with a throwaway spike, not after.**
-- [ ] `flutter_tui` `ListView` / scroll anchoring behaves sanely under ~30fps repaint.
+- [ ] `package:markdown` + custom renderer hits acceptable streaming latency in nocterm.
+      **Validate day 1 with a throwaway spike, not after.**
+- [ ] nocterm `ListView` / scroll anchoring behaves sanely under ~30fps repaint.
 - [ ] Fork-on-edit alone is enough after ~500 real messages (missing branch-switch-back UI
       won't bite immediately).
 - [ ] `drift`/`sqlite3` FFI is painless on Linux and Windows.
