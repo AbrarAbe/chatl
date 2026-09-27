@@ -152,7 +152,10 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 ### Phase 2 — Persistence & branching
 
-- [ ] **Task 6: SQLite store via drift**
+- [x] **Task 6: SQLite store via drift** — DONE on `feature/mvp-v0.1.0`. TDD,
+      4 tests (CRUD, null/JSON sources, fork sibling chains, schema v1). Note:
+      added dev-dep `drift_dev` (required codegen companion to `drift`) —
+      Ask-first boundary cited here.
   - **Description:** `sessions` + `messages` tables exactly per spec §Data model (`sources`
     as nullable JSON), generated drift code, migration runner pinned to v1 schema.
   - **Acceptance:** CRUD round-trips against in-memory sqlite; schema version recorded;
