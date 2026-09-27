@@ -119,7 +119,13 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/session/`.
   - **Files:** `lib/src/session/*.dart`, `test/session/*`.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 5: Chat UI shell (plain-text streaming)**
+- [x] **Task 5: Chat UI shell (plain-text streaming)** — DONE on
+      `feature/mvp-v0.1.0`. nocterm_test: input submit → streamed render; single
+      arrow-up releases anchor, PageDown re-engages (required `ChatScrollController`
+      override: nocterm's 1-row threshold keeps re-engaging mid-stream — spike finding
+      confirmed real). `FrameCoalescer` unit-tested (50 rapid events → 1 flush).
+      Declared gap: live-endpoint smoke not run (no credentials in this env); covered
+      by FakeProvider tests + manual run on user machine.
   - **Description:** nocterm app: input line with `prompt_prefix`, scrollback list
     with **auto-scroll anchoring** (scroll unless user scrolled up), streaming append with
     frame coalescing (~30–60fps, never per-token setState), theme from config. Plain text
@@ -131,14 +137,16 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Files:** `lib/src/ui/**` (widgets extracted per one-widget-per-file rule),
     `test/ui/*`.
   - **Scope:** L · bundle · widget tests (`nocterm_test`); render-loop behavior
-    covered by unit tests on the coalescer.
+    covered by unit tests on the coalescer. *(done)*
 
 ### Checkpoint: Walking skeleton
 
-- [ ] A real (or local OpenAI-compatible) endpoint chats end-to-end in plain text.
+- [~] A real (or local OpenAI-compatible) endpoint chats end-to-end in plain text. —
+      FakeProvider + headless chat-screen tests pass; live-endpoint run deferred to
+      user's machine (no credentials here).
 - [ ] First token visible within ~2s of send on a healthy endpoint (spec Success #1,
-      streaming part).
-- [ ] `dart analyze` clean; `dart test` green vs baseline.
+      streaming part). — deferred, same reason.
+- [x] `dart analyze` clean; `dart test` green vs baseline (33 tests).
 
 ---
 

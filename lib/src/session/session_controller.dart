@@ -36,6 +36,7 @@ class SessionController {
 
   String get currentModel => _modelName;
   String get currentPersona => _personaName;
+  String get promptPrefix => _config.ui.promptPrefix;
   bool get streaming => _streaming;
 
   /// Emits after every transcript change (including in-place delta appends).
