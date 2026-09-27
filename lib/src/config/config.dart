@@ -103,7 +103,7 @@ class Config {
     }
 
     return Config(
-      models: _parseModels(root['models'], configPath),
+      models: _parseModels(root['models'], configPath, warnings),
       personas: _parsePersonas(root['persona'], configPath),
       ui: _parseUi(root['ui'], configPath),
       commands: _parseCommands(root['commands'], configPath),
@@ -139,7 +139,13 @@ class Config {
     });
   }
 
-  static Map<String, ModelProfile> _parseModels(YamlNode? node, String path) {
+  static const _knownModelKeys = {'model', 'base_url', 'api_key'};
+
+  static Map<String, ModelProfile> _parseModels(
+    YamlNode? node,
+    String path,
+    List<String> warnings,
+  ) {
     if (node == null) return _defaults().models;
     if (node is! YamlMap) {
       throw ConfigException('$path: models must be a mapping');
@@ -157,6 +163,17 @@ class Config {
         }
         out[name] = ModelProfile(model: value.value as String);
       } else if (value is YamlMap) {
+        for (final key in value.nodes.keys) {
+          if (!_knownModelKeys.contains(key)) {
+            warnings.add('$path: models.$name has unknown key "$key" (ignored)');
+          }
+        }
+        if (!value.nodes.containsKey('base_url')) {
+          warnings.add(
+            '$path: models.$name has no base_url — '
+            'defaults to https://api.openai.com/v1',
+          );
+        }
         final model = value['model'];
         if (model is! String) {
           throw ConfigException(

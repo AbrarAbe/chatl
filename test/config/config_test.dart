@@ -91,7 +91,7 @@ models:
 ''', env: const {});
 
       expect(config.models['default']!.apiKey, isNull);
-      expect(config.warnings.single, contains('CHATL_UNSET_VAR'));
+      expect(config.warnings.any((w) => w.contains('CHATL_UNSET_VAR')), isTrue);
     });
 
     test('invalid YAML fails with line information', () async {
@@ -136,6 +136,31 @@ futuristic_feature: true
         loadSource('commands:\n  - prompt: hello\n'),
         throwsA(isA<ConfigException>().having((e) => e.message, 'message', contains('name'))),
       );
+    });
+
+    test('unknown nested model key warns (typo guard: api-key vs api_key)', () async {
+      final config = await loadSource('''
+models:
+  default:
+    model: gpt-4o
+    api-key: sk-nope
+''');
+
+      expect(config.warnings.any((w) => w.contains('api-key')), isTrue);
+      // ignored, not applied: no auth header will be built from it
+      expect(config.models['default']!.apiKey, isNull);
+    });
+
+    test('map-form profile without base_url warns about OpenAI default', () async {
+      final config = await loadSource('''
+models:
+  default:
+    model: some-model-id
+    api_key: sk-abc
+''');
+
+      expect(config.models['default']!.baseUrl, isNull);
+      expect(config.warnings.any((w) => w.contains('api.openai.com')), isTrue);
     });
   });
 }
