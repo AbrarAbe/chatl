@@ -241,7 +241,8 @@ Plan files are **coupled to app release milestones**:
 
 ## Code Style
 
-- `flutter_lints` (`analysis_options.yaml`), `dart format`, no deviations without reason.
+- `package:lints` (recommended; `analysis_options.yaml`), `dart format`, no deviations
+  without reason.
 - One public widget class per file; new widgets live in the sibling `widgets/` directory
   (e.g. `lib/src/ui/chat/widgets/message_list.dart`) — never new private widget classes in
   a pane/shell/sidebar. Private `State` classes stay alongside their widget.

@@ -59,7 +59,12 @@ product commits.
 Record the `dart test` baseline at the start of Task 1 (scaffold has no tests;
 baseline is expected empty/green). Quote it in the plan entry.
 
-- [ ] **Task 1: Project skeleton + dependencies**
+- [x] **Task 1: Project skeleton + dependencies** — DONE on `feature/mvp-v0.1.0`.
+      Baseline recorded 2026-09-27: pre-code `dart test` → "Could not find package
+      `test`" (no dev dep, no tests); post-task → `00:00 +1: All tests passed!`
+      (smoke). `dart analyze`: No issues found. Declared gap: `dart run bin/chatl.dart`
+      pty-visual not verified (headless env; exits 0; render verified via nocterm_test
+      smoke). Desktop runners (`linux/`, `windows/`) removed; `flutter_lints` → `lints`.
   - **Description:** Restructure into a pure-Dart console package (ADR 0002): remove the
     unused `linux/`/`windows/` desktop runners, move the entrypoint to `bin/chatl.dart`,
     swap `flutter_test` for `package:test` (+ `nocterm_test` when widgets land). Add
