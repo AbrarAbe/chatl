@@ -106,7 +106,11 @@ baseline is expected empty/green). Quote it in the plan entry.
     `test/providers/*`.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test` (+ `dart-generate-test-mocks` for
     the HTTP client if injection needs it).
-- [ ] **Task 4: Session orchestration (in-memory)**
+- [x] **Task 4: Session orchestration (in-memory)** — DONE on
+      `feature/mvp-v0.1.0`. TDD, 7 tests vs `RecordingProvider`: stream→transcript,
+      request shape (persona system + history + model), error turns visible,
+      model/persona switch next-request-only, unknown names throw, one stream at a time,
+      update notifications.
   - **Description:** `SessionController` wiring config → provider: build request from
     conversation + persona + model, stream `ChatEvent`s into a transcript model, expose
     switchable model/persona state. No persistence yet.
