@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart';
 
 import 'database.dart';
 
@@ -33,6 +33,9 @@ class DriftSessionStore implements SessionStore {
     return 'm$now$salt';
   }
 
+  /// Fresh session id (prefix `s`).
+  String newSessionId() => 's${_newId().substring(1)}';
+
   Future<Session> createSession({
     required String id,
     required String title,
@@ -57,6 +60,32 @@ class DriftSessionStore implements SessionStore {
 
   Future<Session> getSession(String id) =>
       (_db.select(_db.sessions)..where((s) => s.id.equals(id))).getSingle();
+
+  /// Most recently updated session, or null when none exist (`--continue`).
+  Future<Session?> latestSession() async {
+    final rows =
+        await (_db.select(_db.sessions)
+              ..orderBy([(s) => OrderingTerm.desc(s.updatedAt)])
+              ..limit(1))
+            .get();
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  /// Sets a session's title (first user message, truncated).
+  Future<void> updateTitle(String sessionId, String title) =>
+      (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
+        SessionsCompanion(title: Value(title), updatedAt: Value(DateTime.now())),
+      );
+
+  /// Persists a mid-conversation model/persona switch.
+  Future<void> updateProfile(String sessionId, {required String model, required String persona}) =>
+      (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
+        SessionsCompanion(
+          model: Value(model),
+          persona: Value(persona),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
 
   Future<Message> getMessage(String id) =>
       (_db.select(_db.messages)..where((m) => m.id.equals(id))).getSingle();

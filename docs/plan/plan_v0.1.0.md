@@ -175,7 +175,13 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/state/`.
   - **Files:** `lib/src/state/session_store.dart`, tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 8: Persisted sessions + resume CLI**
+- [x] **Task 8: Persisted sessions + resume CLI** — DONE on `feature/mvp-v0.1.0`.
+      TDD: 3 persistence tests (restart→identical transcript, title = first user
+      message truncated to 60, `latestSession`) + 6 CLI arg tests. `bin/chatl.dart`
+      wires `--continue` / `--session <id>`; new sessions start on `default` or the
+      first configured profile; config warnings print to stderr. Note: moved drift
+      DateTimes to text storage (`build.yaml`) — second-resolution integers broke
+      `updatedAt` ordering for `--continue`.
   - **Description:** Orchestration writes through the store; `args`-based CLI:
     `chatl`, `chatl --continue` (latest session), `chatl --session <id>`; session title =
     first user message truncated to ~60 chars.
@@ -183,7 +189,8 @@ baseline is expected empty/green). Quote it in the plan entry.
     (spec Success #4); `--session <id>` opens that session's active branch; title follows
     the truncated-first-message rule.
   - **Verify:** `dart test test/session/ test/state/`; manual restart check.
-  - **Files:** `bin/chatl.dart`, `lib/src/session/*`, `lib/src/state/*`, tests.
+  - **Files:** `bin/chatl.dart`, `lib/src/cli/*`, `lib/src/session/*`, `lib/src/state/*`,
+    tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
 - [ ] **Task 9: Fork-on-edit UX + `/history`**
   - **Description:** Edit a prior message → `forkAt` + `setHead` automatically; `/history`

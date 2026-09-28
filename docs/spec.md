@@ -221,10 +221,15 @@ scaffold (`linux/`, `windows/`, `flutter_test`) does not apply (ADR 0002).
 
 ```
 Run (dev):   dart run bin/chatl.dart       # or compiled: dart compile exe bin/chatl.dart
+Resume:      dart run bin/chatl.dart --continue        # latest session
+             dart run bin/chatl.dart --session <id>
 Test:        dart test
 Analyze:     dart analyze                  # MCP: analyze_files
 Pub:         dart pub get
 ```
+
+Config and database live under `~/.config/chatl/` (`config.yaml`, `chatl.db`);
+config warnings are printed to stderr at startup.
 
 ## Versioning
 

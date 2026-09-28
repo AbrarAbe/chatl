@@ -2,25 +2,25 @@ import 'package:nocterm/nocterm.dart';
 
 import '../config/config.dart';
 import '../providers/openai_compat.dart';
+import '../providers/provider.dart';
 import '../session/session_controller.dart';
 import 'chat_screen.dart';
 
-/// Root application shell: config → session controller → chat screen.
+/// Root application shell: an already-constructed [SessionController]
+/// (in-memory for tests, persisted for the real CLI) rendered as the chat
+/// screen.
 class ChatlApp extends StatelessComponent {
-  const ChatlApp({super.key, required this.config});
+  const ChatlApp({super.key, required this.controller});
 
-  final Config config;
+  final SessionController controller;
 
   @override
-  Component build(BuildContext context) {
-    return ChatScreen(
-      controller: SessionController(
-        config: config,
-        providerFor: (profile) => OpenAiCompatProvider(
-          baseUrl: profile.baseUrl ?? 'https://api.openai.com/v1',
-          apiKey: profile.apiKey,
-        ),
-      ),
-    );
-  }
+  Component build(BuildContext context) => ChatScreen(controller: controller);
 }
+
+/// Real provider for a model profile; the one place HTTP meets the seam
+/// (spec §Seams).
+Provider providerForProfile(ModelProfile profile) => OpenAiCompatProvider(
+  baseUrl: profile.baseUrl ?? 'https://api.openai.com/v1',
+  apiKey: profile.apiKey,
+);
