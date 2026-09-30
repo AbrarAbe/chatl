@@ -69,10 +69,18 @@ class SessionController {
   bool _streaming = false;
   Future<void> _ready = Future.value();
 
+  /// Cumulative token usage reported by the provider (0 when it omits usage;
+  /// the spec's `~`-estimate fallback is not implemented — Task 14 polish).
+  int totalPromptTokens = 0;
+  int totalCompletionTokens = 0;
+
   /// Session id when persisted, else null.
   String? get sessionId => _session?.id;
 
   final List<Turn> transcript = [];
+
+  /// The loaded configuration (commands registry, UI options).
+  Config get config => _config;
 
   String get currentModel => _modelName;
   String get currentPersona => _personaName;
@@ -102,6 +110,35 @@ class SessionController {
     for (final message in await store.activeBranch(session)) {
       transcript.add(Turn(role: message.role, content: message.content, id: message.id));
     }
+  }
+
+  /// A visible, non-persisted transcript note (`/context`, command notices).
+  void addNotice(String text) {
+    transcript.add(Turn(role: 'notice', content: text));
+    _updates.add(null);
+  }
+
+  /// `/rename <title>` — persists a new session title.
+  Future<void> renameSession(String title) async {
+    final store = _store;
+    final session = _session;
+    if (store == null || session == null) {
+      throw StateError('renameSession requires a persisted session');
+    }
+    await store.updateTitle(session.id, title);
+  }
+
+  /// `/context` summary: session id, model, persona, turns, token usage.
+  String describeContext() {
+    final usage = totalPromptTokens == 0 && totalCompletionTokens == 0
+        ? 'usage: provider did not report'
+        : 'tokens: $totalPromptTokens in / $totalCompletionTokens out';
+    return 'session: ${_session?.id ?? '(in-memory)'}'
+        '\nmodel: ${_config.models[_modelName]?.model ?? _modelName}'
+        ' (profile $_modelName)'
+        '\npersona: $_personaName'
+        '\nturns: ${transcript.where((t) => t.role != 'notice').length}'
+        '\n$usage';
   }
 
   /// Flat current-branch listing for `/history`.
@@ -273,6 +310,9 @@ class SessionController {
       _updates.add(null);
       if (event is ChatErrorEvent) break;
     }
+
+    totalPromptTokens += promptTokens ?? 0;
+    totalCompletionTokens += completionTokens ?? 0;
 
     _assignTurnId(
       transcript.length - 1,

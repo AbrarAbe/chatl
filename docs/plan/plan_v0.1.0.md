@@ -218,7 +218,14 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 ### Phase 3 — Commands, resolvers, renderer, polish
 
-- [ ] **Task 10: Slash-command registry + informational/built-in commands**
+- [x] **Task 10: Slash-command registry + informational/built-in commands** — DONE on
+      `feature/mvp-v0.1.0`. TDD: 8 registry tests + 4 controller-support tests + 6
+      nocterm widget tests. Built-ins `/new` (via injected factory), `/rename`,
+      `/copy` (OSC 52 through nocterm's ClipboardManager), `/context` (session, model,
+      persona, turns, usage), `/history`; config commands render as prompts and never
+      shadow built-ins; unknown verbs and bad arguments fail visibly. `/edit` and
+      `/history` from Task 9 are now registry-driven. Spec note: token-usage decision
+      narrowed to "provider did not report" (no estimator in v1).
   - **Description:** Registry (built-in + config-defined from `commands:`), `/new`,
     `/rename`, `/copy`, `/context` (session id, model, tokens — estimated with `~` when
     the provider omits usage), `/history` hook; config-defined commands render as prompts.

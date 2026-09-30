@@ -24,16 +24,19 @@ class MessageList extends StatelessComponent {
         itemBuilder: (context, index) {
           final turn = transcript[index];
           final isUser = turn.role == 'user';
+          final isNotice = turn.role == 'notice';
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isUser ? '❯ ' : (turn.error ? '✗ ' : '◆ '),
+                  isUser ? '❯ ' : (isNotice ? 'ℹ ' : (turn.error ? '✗ ' : '◆ ')),
                   style: TextStyle(
                     color: turn.error
                         ? Colors.red
+                        : isNotice
+                        ? Colors.gray
                         : isUser
                         ? Colors.green
                         : Colors.cyan,

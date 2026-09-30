@@ -359,7 +359,7 @@ Adopted from the suggestions in `docs/ideas/chatl.md`:
 | `/history` presentation | Flat current-branch list; tree only if it proves necessary |
 | Persona × model composition | Independent axes — never coupled |
 | Session title default | First user message, truncated (~60 chars); no LLM-generated title in v1 |
-| Token counting when provider omits usage | Estimate locally and display with `~` marker; never block the UI on it |
+| Token counting when provider omits usage | Show `usage: provider did not report` in `/context`; no local estimator in v1 (implemented in Task 10) |
 | Citation UX (post-v1) | Trailing sources block plus a toggle; no inline footnotes in a TUI |
 | `@search` with no backend configured | Fail visibly with an inline error block |
 | Context block size cap | Configurable cap (default 100 KB / resolver); truncate with a visible notice, never reject silently |

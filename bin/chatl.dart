@@ -19,10 +19,8 @@ Future<void> main(List<String> argv) async {
   }
 
   final config = await Config.load();
-  if (config.warnings.isNotEmpty) {
-    for (final warning in config.warnings) {
-      stderr.writeln('config: $warning');
-    }
+  for (final warning in config.warnings) {
+    stderr.writeln('config: $warning');
   }
 
   final dbDir = p.join(Platform.environment['HOME'] ?? '.', '.config', 'chatl');
@@ -50,22 +48,34 @@ Future<void> main(List<String> argv) async {
   final initialProfile = config.models.containsKey('default')
       ? 'default'
       : config.models.keys.first;
+  final initialPersona = config.personas.containsKey('default')
+      ? 'default'
+      : config.personas.keys.first;
 
-  session ??= await store.createSession(
+  Future<Session> createPersistedSession() => store.createSession(
     id: store.newSessionId(),
     title: '(untitled)',
     model: initialProfile,
-    persona: config.personas.containsKey('default') ? 'default' : config.personas.keys.first,
+    persona: initialPersona,
   );
 
-  final controller = SessionController.resume(
-    config: config,
-    providerFor: providerForProfile,
-    store: store,
-    session: session,
-  );
-  await controller.ready;
+  Future<SessionController> controllerFor(Session s) async {
+    final controller = SessionController.resume(
+      config: config,
+      providerFor: providerForProfile,
+      store: store,
+      session: s,
+    );
+    await controller.ready;
+    return controller;
+  }
 
-  await runApp(ChatlApp(controller: controller));
+  session ??= await createPersistedSession();
+  final controller = await controllerFor(session);
+
+  // `/new`: fresh persisted session, same config/store (spec §MVP Scope).
+  Future<SessionController> newSession() async => controllerFor(await createPersistedSession());
+
+  await runApp(ChatlApp(controller: controller, newSession: newSession));
   await db.close();
 }
