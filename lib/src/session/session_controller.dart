@@ -2,12 +2,12 @@ import 'dart:async';
 
 import '../config/config.dart';
 import '../providers/provider.dart';
-import '../state/database.dart' show Session;
+import '../state/database.dart' show Message, Session;
 import '../state/session_store.dart';
 
 /// One entry in the visible conversation.
 class Turn {
-  Turn({required this.role, required this.content, this.error = false});
+  Turn({required this.role, required this.content, this.error = false, this.id});
 
   final String role; // 'user' | 'assistant'
   String content;
@@ -15,6 +15,17 @@ class Turn {
   /// True when this turn records a failure (spec §Interaction Model: failures
   /// are visible in the transcript, never silently dropped).
   final bool error;
+
+  /// Persisted message id; null for purely in-memory conversations.
+  final String? id;
+}
+
+/// One row of `/history`: the current branch, flat (spec Decisions).
+class HistoryEntry {
+  const HistoryEntry({required this.role, required this.preview});
+
+  final String role;
+  final String preview;
 }
 
 /// Orchestrates one conversation: config → [Provider] stream → transcript.
@@ -78,9 +89,114 @@ class SessionController {
     final session = _session;
     final store = _store;
     if (session == null || store == null) return;
+    await _rebuildTranscript();
+    _updates.add(null);
+  }
+
+  /// Replaces [transcript] with the persisted active branch. The session row
+  /// is re-read first — the stored object is stale after every head move.
+  Future<void> _rebuildTranscript() async {
+    final store = _store!;
+    final session = await store.getSession(_session!.id);
+    transcript.clear();
     for (final message in await store.activeBranch(session)) {
-      transcript.add(Turn(role: message.role, content: message.content));
+      transcript.add(Turn(role: message.role, content: message.content, id: message.id));
     }
+  }
+
+  /// Flat current-branch listing for `/history`.
+  List<HistoryEntry> history() => [
+    for (final turn in transcript)
+      HistoryEntry(
+        role: turn.role,
+        preview: turn.content.length > 60 ? '${turn.content.substring(0, 60)}…' : turn.content,
+      ),
+  ];
+
+  /// Fork-on-edit: replaces the content of user turn [turnId] with [text],
+  /// moves the session head to the fork, then regenerates the assistant
+  /// reply. The old branch is left intact (spec §MVP Scope).
+  Future<void> editTurn(String turnId, String text) async {
+    if (_streaming) {
+      throw StateError('a stream is already in flight');
+    }
+    final store = _store;
+    final session = _session;
+    if (store == null || session == null) {
+      throw StateError('editTurn requires a persisted session');
+    }
+    final index = transcript.indexWhere((t) => t.id == turnId);
+    if (index < 0) {
+      throw ArgumentError.value(turnId, 'turnId', 'unknown turn');
+    }
+    if (transcript[index].role != 'user') {
+      throw ArgumentError.value(turnId, 'turnId', 'only user turns are editable');
+    }
+
+    final fork = await store.forkAt(session.id, turnId, text);
+    await store.setHead(session, fork.id);
+    await _rebuildTranscript();
+    _updates.add(null);
+
+    await regenerate();
+  }
+
+  /// Streams an assistant reply from the current branch without adding a user
+  /// turn (used after an edit).
+  Future<void> regenerate() async {
+    if (_streaming) {
+      throw StateError('a stream is already in flight');
+    }
+    _streaming = true;
+
+    transcript.add(Turn(role: 'assistant', content: ''));
+    _updates.add(null);
+
+    final profile = _config.models[_modelName]!;
+    final request = StreamRequest(
+      model: profile.model,
+      messages: [
+        ChatMessage(role: 'system', content: _config.personas[_personaName] ?? ''),
+        for (var i = 0; i < transcript.length - 1; i++)
+          ChatMessage(role: transcript[i].role, content: transcript[i].content),
+      ],
+    );
+
+    final assistant = transcript.last;
+    int? promptTokens;
+    int? completionTokens;
+
+    await for (final event in _providerFor(profile).chat(request)) {
+      switch (event) {
+        case ChatTextEvent(:final text):
+          assistant.content += text;
+        case ChatErrorEvent(:final message):
+          transcript[transcript.length - 1] = Turn(
+            role: 'assistant',
+            content: message,
+            error: true,
+          );
+          break;
+        case final ChatDoneEvent done:
+          promptTokens = done.promptTokens ?? promptTokens;
+          completionTokens = done.completionTokens ?? completionTokens;
+          break;
+      }
+      _updates.add(null);
+      if (event is ChatErrorEvent) break;
+    }
+
+    _assignTurnId(
+      transcript.length - 1,
+      await _persistAssistantTurn(
+        transcript.last,
+        model: profile.model,
+        promptTokens: promptTokens,
+        completionTokens: completionTokens,
+      ),
+    );
+
+    _streaming = false;
     _updates.add(null);
   }
 
@@ -123,7 +239,7 @@ class SessionController {
 
     final profile = _config.models[_modelName]!;
 
-    await _persistUserTurn(text);
+    _assignTurnId(transcript.length - 2, await _persistUserTurn(text));
 
     final request = StreamRequest(
       model: profile.model,
@@ -158,29 +274,40 @@ class SessionController {
       if (event is ChatErrorEvent) break;
     }
 
-    await _persistAssistantTurn(
-      transcript.last,
-      model: profile.model,
-      promptTokens: promptTokens,
-      completionTokens: completionTokens,
+    _assignTurnId(
+      transcript.length - 1,
+      await _persistAssistantTurn(
+        transcript.last,
+        model: profile.model,
+        promptTokens: promptTokens,
+        completionTokens: completionTokens,
+      ),
     );
 
     _streaming = false;
     _updates.add(null);
   }
 
-  Future<void> _persistUserTurn(String text) async {
+  Future<Message?> _persistUserTurn(String text) async {
     final store = _store;
     final session = _session;
-    if (store == null || session == null) return;
-    await store.appendMessage(sessionId: session.id, role: 'user', content: text);
+    if (store == null || session == null) return null;
+    final message = await store.appendMessage(sessionId: session.id, role: 'user', content: text);
     if (session.title.isEmpty || session.title == '(untitled)') {
       final title = text.length <= 60 ? text : text.substring(0, 60);
       await store.updateTitle(session.id, title);
     }
+    return message;
   }
 
-  Future<void> _persistAssistantTurn(
+  /// Gives an in-memory turn its persisted id so later edits can target it.
+  void _assignTurnId(int index, Message? message) {
+    if (message == null || index < 0 || index >= transcript.length) return;
+    final turn = transcript[index];
+    transcript[index] = Turn(role: turn.role, content: turn.content, id: message.id);
+  }
+
+  Future<Message?> _persistAssistantTurn(
     Turn turn, {
     required String model,
     int? promptTokens,
@@ -188,8 +315,8 @@ class SessionController {
   }) async {
     final store = _store;
     final session = _session;
-    if (store == null || session == null) return;
-    await store.appendMessage(
+    if (store == null || session == null) return null;
+    return store.appendMessage(
       sessionId: session.id,
       role: 'assistant',
       content: turn.content,

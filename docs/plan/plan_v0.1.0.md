@@ -192,7 +192,14 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Files:** `bin/chatl.dart`, `lib/src/cli/*`, `lib/src/session/*`, `lib/src/state/*`,
     tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 9: Fork-on-edit UX + `/history`**
+- [x] **Task 9: Fork-on-edit UX + `/history`** — DONE on `feature/mvp-v0.1.0`.
+      TDD: 5 controller tests (fork+regenerate, old branch intact, resume shows edited
+      branch, assistant turns not editable, in-memory rejects edit) + 2 nocterm widget
+      tests (`/history` overlay + esc, `/edit <text>` fork). **Deviation (documented):**
+      the plan's Ctrl+E affordance was replaced by one-shot `/edit <new text>` — nocterm
+      dispatches key events children-first so the focused TextField swallows chords, and
+      prefill-into-the-field proved racy across rebuilds (both verified while
+      implementing). Store gained `linkToHead` so a root-message fork stays a root.
   - **Description:** Edit a prior message → `forkAt` + `setHead` automatically; `/history`
     shows a flat list of the current branch (spec Decisions: flat, not tree).
   - **Acceptance:** Editing mid-conversation creates an alternative branch and the old

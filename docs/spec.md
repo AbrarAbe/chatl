@@ -138,8 +138,16 @@ commands:
 ### `/` — verbs
 
 Slash commands transform the turn and take no payload: `/recap`, `/model`, `/persona`,
-`/history`, `/context`, `/copy`, `/rename`, `/new`. User-defined entries come from config
-and render as prompts against the current conversation.
+`/history`, `/edit <new text>`, `/context`, `/copy`, `/rename`, `/new`. User-defined
+entries come from config and render as prompts against the current conversation.
+
+### Fork-on-edit
+
+`/edit <new text>` replaces the most recent user turn: it forks the branch at that
+message's parent, moves the session head to the fork, and regenerates the assistant
+reply. The old branch is left intact in the store. (A Ctrl+E-style chord was rejected:
+nocterm dispatches key events children-first, so the focused input field swallows chords
+before the screen's handler — see plan_v0.1.0 Task 9.)
 
 ### `@` — references
 
@@ -181,7 +189,8 @@ Handle explicitly: `: OPENAI` keepalive comments, `[DONE]`, partial chunks, mult
 
 Editing a message creates a new branch: the edited message gets a new id with
 `parent_id` pointing at the previous message's parent, and the session's `active_head_id`
-moves to the edited message. No DAG navigation UI in v1.
+moves to the edited message. No DAG navigation UI in v1. `/history` lists the current
+branch flat.
 
 ## The Risk Module (streaming markdown renderer)
 

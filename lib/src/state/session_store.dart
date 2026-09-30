@@ -90,13 +90,16 @@ class DriftSessionStore implements SessionStore {
   Future<Message> getMessage(String id) =>
       (_db.select(_db.messages)..where((m) => m.id.equals(id))).getSingle();
 
-  /// Appends a message. When [parentId] is omitted, it links to the
-  /// session's current head; unless [advanceHead] is false (forkAt's case),
-  /// the new message becomes the session's active head.
+  /// Appends a message. When [linkToHead] is true and [parentId] is omitted,
+  /// the message links to the session's current head; [linkToHead] false with
+  /// a null [parentId] means a root message (forkAt's root case). Unless
+  /// [advanceHead] is false (forkAt's case), the new message becomes the
+  /// session's active head.
   Future<Message> appendMessage({
     String? id,
     required String sessionId,
     String? parentId,
+    bool linkToHead = true,
     bool advanceHead = true,
     required String role,
     required String content,
@@ -105,7 +108,8 @@ class DriftSessionStore implements SessionStore {
     int? completionTokens,
   }) async {
     final messageId = id ?? _newId();
-    final effectiveParent = parentId ?? (await getSession(sessionId)).activeHeadId;
+    final effectiveParent =
+        parentId ?? (linkToHead ? (await getSession(sessionId)).activeHeadId : null);
     await _db
         .into(_db.messages)
         .insert(
@@ -160,6 +164,7 @@ class DriftSessionStore implements SessionStore {
     return appendMessage(
       sessionId: sessionId,
       parentId: original.parentId,
+      linkToHead: false, // a root-message fork must stay a root
       advanceHead: false, // caller follows with setHead (spec §Seams)
       role: original.role,
       content: content,
