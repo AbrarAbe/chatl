@@ -192,11 +192,7 @@ class SessionController {
     final profile = _config.models[_modelName]!;
     final request = StreamRequest(
       model: profile.model,
-      messages: [
-        ChatMessage(role: 'system', content: _config.personas[_personaName] ?? ''),
-        for (var i = 0; i < transcript.length - 1; i++)
-          ChatMessage(role: transcript[i].role, content: transcript[i].content),
-      ],
+      messages: _conversationMessages(trailing: 1),
     );
 
     final assistant = transcript.last;
@@ -280,11 +276,7 @@ class SessionController {
 
     final request = StreamRequest(
       model: profile.model,
-      messages: [
-        ChatMessage(role: 'system', content: _config.personas[_personaName] ?? ''),
-        for (var i = 0; i < transcript.length - 1; i++)
-          ChatMessage(role: transcript[i].role, content: transcript[i].content),
-      ],
+      messages: _conversationMessages(trailing: 1),
     );
 
     final assistant = transcript.last;
@@ -326,6 +318,24 @@ class SessionController {
 
     _streaming = false;
     _updates.add(null);
+  }
+
+  /// Turns that belong in an API request: real conversation only. `notice`
+  /// turns (command feedback, `/context`) and error turns must never be sent —
+  /// a non-user/assistant role is rejected by OpenAI-compatible endpoints with
+  /// HTTP 400.
+  List<ChatMessage> _conversationMessages({int trailing = 0}) {
+    final end = transcript.length - trailing;
+    final messages = <ChatMessage>[
+      ChatMessage(role: 'system', content: _config.personas[_personaName] ?? ''),
+    ];
+    for (var i = 0; i < end; i++) {
+      final turn = transcript[i];
+      if (turn.role != 'user' && turn.role != 'assistant') continue;
+      if (turn.error) continue;
+      messages.add(ChatMessage(role: turn.role, content: turn.content));
+    }
+    return messages;
   }
 
   Future<Message?> _persistUserTurn(String text) async {
