@@ -239,6 +239,7 @@ class SessionController {
     }
     _modelName = name;
     _persistProfile();
+    _updates.add(null);
   }
 
   void setPersona(String name) {
@@ -247,6 +248,23 @@ class SessionController {
     }
     _personaName = name;
     _persistProfile();
+    _updates.add(null);
+  }
+
+  /// `/model` listing: profile names with the active one marked.
+  String describeModels() {
+    final lines = _config.models.keys
+        .map((name) => name == _modelName ? '* $name' : '  $name')
+        .join('\n');
+    return 'models (active: $_modelName):\n$lines';
+  }
+
+  /// `/persona` listing.
+  String describePersonas() {
+    final lines = _config.personas.keys
+        .map((name) => name == _personaName ? '* $name' : '  $name')
+        .join('\n');
+    return 'personas (active: $_personaName):\n$lines';
   }
 
   void _persistProfile() {

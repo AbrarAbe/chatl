@@ -235,7 +235,11 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/commands/`.
   - **Files:** `lib/src/commands/**`, tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 11: `/model` and `/persona` mid-conversation switching**
+- [x] **Task 11: `/model` and `/persona` mid-conversation switching** — DONE on
+      `feature/mvp-v0.1.0`. TDD: 3 registry tests + 5 widget tests (switch model and
+      persona affect only later requests, session row persists the choice, unknown
+      names fail visibly with the available list, bare verbs list profiles with the
+      active one marked). Independent axes kept (spec Decisions).
   - **Description:** List/select from config profiles; strictly independent axes (spec
     Decisions); applies from next turn; reflected in `/context`.
   - **Acceptance:** Switching either axis affects only subsequent requests; invalid names

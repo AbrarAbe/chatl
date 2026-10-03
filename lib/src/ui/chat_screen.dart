@@ -119,8 +119,39 @@ class _ChatScreenState extends State<ChatScreen> {
         _rename(payload!);
       case BuiltinAction.editLastUserTurn:
         _editLastUserTurn(payload!);
+      case BuiltinAction.setModel:
+        _switchProfile(payload, isModel: true);
+      case BuiltinAction.setPersona:
+        _switchProfile(payload, isModel: false);
       case BuiltinAction.newSession:
         _newSession();
+    }
+  }
+
+  /// `/model [name]` and `/persona [name]`: list when bare, switch when named
+  /// (validation live in the controller; unknown names fail visibly).
+  void _switchProfile(String? name, {required bool isModel}) {
+    if (name == null) {
+      _controller.addNotice(
+        isModel ? _controller.describeModels() : _controller.describePersonas(),
+      );
+      return;
+    }
+    try {
+      if (isModel) {
+        _controller.setModel(name);
+        _controller.addNotice('/model: now using profile "$name"');
+      } else {
+        _controller.setPersona(name);
+        _controller.addNotice('/persona: now using "$name"');
+      }
+    } on ArgumentError {
+      final available = isModel
+          ? _controller.config.models.keys.join(', ')
+          : _controller.config.personas.keys.join(', ');
+      _controller.addNotice(
+        'unknown ${isModel ? 'model' : 'persona'} "$name" — available: $available',
+      );
     }
   }
 
@@ -218,7 +249,7 @@ class _ChatScreenState extends State<ChatScreen> {
               '${c.currentModel} · ${c.currentPersona}'
               '${c.streaming ? ' · …' : ''}'
               '${_scroll.isAutoScrollEnabled ? '' : ' · paused (↓ to resume)'}'
-              ' · /history /context /edit /new',
+              ' · /model /persona /history /context /new',
               style: const TextStyle(color: Colors.gray),
             ),
           ),

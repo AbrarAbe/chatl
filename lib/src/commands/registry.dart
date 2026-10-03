@@ -1,7 +1,16 @@
 import '../config/config.dart';
 
 /// Built-in `/` verbs the UI performs itself (spec §Interaction Model).
-enum BuiltinAction { newSession, rename, copyLastReply, showContext, showHistory, editLastUserTurn }
+enum BuiltinAction {
+  newSession,
+  rename,
+  copyLastReply,
+  showContext,
+  showHistory,
+  editLastUserTurn,
+  setModel,
+  setPersona,
+}
 
 /// What a `/` input resolved to.
 sealed class CommandOutcome {
@@ -68,6 +77,16 @@ class SlashRegistry {
         return const CommandAction(BuiltinAction.showContext);
       case 'copy':
         return const CommandAction(BuiltinAction.copyLastReply);
+      case 'model':
+        return CommandAction(
+          BuiltinAction.setModel,
+          payload: payload == null || payload.isEmpty ? null : payload,
+        );
+      case 'persona':
+        return CommandAction(
+          BuiltinAction.setPersona,
+          payload: payload == null || payload.isEmpty ? null : payload,
+        );
       case 'rename':
         if (payload == null || payload.isEmpty) {
           return CommandMessage(_usage[BuiltinAction.rename]!);
