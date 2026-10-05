@@ -247,7 +247,14 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/commands/ test/session/`.
   - **Files:** `lib/src/commands/*`, `lib/src/session/*`, tests.
   - **Scope:** S · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 12: `@` resolver pipeline (passthrough)**
+- [x] **Task 12: `@` resolver pipeline (passthrough)** — DONE on `feature/mvp-v0.1.0`.
+      TDD: 9 resolver tests (passthrough identity incl. emails and bare `@`, unknown
+      tokens never shadowed, argument/argument-less forms, appearance order, visible
+      error blocks, determinism) + 3 request-path tests (expansion reaches the provider,
+      raw text stays in the transcript, history never re-leaks the syntax). v1 registers
+      zero resolvers, per spec. Note: `Turn.requestContent` carries the resolved form so
+      later turns don't replay `@` syntax; resumed-from-disk turns replay raw text
+      (re-resolution deferred with the resolvers).
   - **Description:** Tokenize mentions; reserved-name registry (empty in v1); unknown `@x`
     passes through literally; message → `[context blocks] + message` request shape; the
     visible-failure convention documented for future resolvers. The model never sees `@`

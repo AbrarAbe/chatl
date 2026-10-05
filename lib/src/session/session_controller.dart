@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../config/config.dart';
 import '../providers/provider.dart';
+import '../resolve/resolver.dart';
 import '../state/database.dart' show Message, Session;
 import '../state/session_store.dart';
 
@@ -18,6 +19,11 @@ class Turn {
 
   /// Persisted message id; null for purely in-memory conversations.
   final String? id;
+
+  /// What the provider sees for this turn when it differs from [content]
+  /// (resolved `@` mentions). Null means "same as content" — e.g. turns
+  /// restored from disk, where the raw text is replayed as-is.
+  String? requestContent;
 }
 
 /// One row of `/history`: the current branch, flat (spec Decisions).
@@ -39,6 +45,7 @@ class SessionController {
     required this._config,
     required this._providerFor,
     this._store,
+    this._resolver = const MentionResolver(),
     Session? session,
   }) : _session = session {
     _modelName = session?.model ?? 'default';
@@ -51,6 +58,7 @@ class SessionController {
     required this._config,
     required this._providerFor,
     required DriftSessionStore this._store,
+    this._resolver = const MentionResolver(),
     required Session session,
   }) : _session = session {
     _modelName = session.model;
@@ -62,6 +70,9 @@ class SessionController {
   final Provider Function(ModelProfile profile) _providerFor;
   final DriftSessionStore? _store;
   final Session? _session;
+
+  /// `@` mention resolver (spec §The `@` resolver layer). v1 registers none.
+  final MentionResolver _resolver;
   final StreamController<void> _updates = StreamController<void>.broadcast();
 
   late String _modelName;
@@ -190,6 +201,7 @@ class SessionController {
     _updates.add(null);
 
     final profile = _config.models[_modelName]!;
+    // Regeneration replays already-resolved history verbatim; no re-expansion.
     final request = StreamRequest(
       model: profile.model,
       messages: _conversationMessages(trailing: 1),
@@ -292,6 +304,12 @@ class SessionController {
 
     _assignTurnId(transcript.length - 2, await _persistUserTurn(text));
 
+    // `@` mentions expand client-side, before the request is built; the
+    // transcript keeps the raw text the user typed (spec §The @ resolver
+    // layer). The resolved form rides on the turn so later requests never
+    // leak the syntax either.
+    final resolution = await _resolver.resolve(text);
+    transcript[transcript.length - 2].requestContent = resolution.requestContent;
     final request = StreamRequest(
       model: profile.model,
       messages: _conversationMessages(trailing: 1),
@@ -351,7 +369,7 @@ class SessionController {
       final turn = transcript[i];
       if (turn.role != 'user' && turn.role != 'assistant') continue;
       if (turn.error) continue;
-      messages.add(ChatMessage(role: turn.role, content: turn.content));
+      messages.add(ChatMessage(role: turn.role, content: turn.requestContent ?? turn.content));
     }
     return messages;
   }

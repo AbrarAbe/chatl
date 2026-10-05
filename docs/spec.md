@@ -172,10 +172,16 @@ Rules:
 
 - **Composable** — multiple refs per message: `@fetch A @fetch B — compare these`.
 - **Uniform** — one syntax; a new resolver is config plus a small registered function.
-- **Fails visibly** — dead URL / timeout → inline error block in the transcript, never a
-  silent drop.
+- **Fails visibly** — dead URL / timeout → inline `[CONTEXT ERROR …]` block in the
+  request, never a silent drop.
 - **Unknown passes through literally** — `@someone@example.com` stays harmless. Reserved
   names are exactly the registered resolver set; they must never shadow unknown tokens.
+- **v1 ships zero resolvers.** The pipeline (tokenize → expand → `[CONTEXT …]` blocks +
+  `Q: …`) is implemented and tested with fakes so `@fetch`/`@search` are additions, not
+  rework. Resolved content rides on the turn (`Turn.requestContent`) so later requests
+  never replay the syntax; `@` at line start or after whitespace only, so email
+  addresses are never mentions. Turns restored from disk replay their raw text
+  (re-resolution on resume is deferred with the resolvers themselves).
 
 `/recap @fetch https://x` is ill-formed — the small grammar is a feature (`/` transforms,
 `@` attaches).
