@@ -2,14 +2,22 @@ import 'package:nocterm/nocterm.dart';
 
 import '../../session/session_controller.dart';
 import '../chat_scroll_controller.dart';
+import '../render/streaming_markdown_view.dart';
 
-/// Scrollable list of conversation turns. Rendering is plain text; markdown
-/// rendering arrives in Task 13 (ADR 0003).
+/// Scrollable list of conversation turns. Assistant turns render as markdown
+/// when `ui.markdown` is enabled (ADR 0003); user turns and notices stay
+/// verbatim.
 class MessageList extends StatelessComponent {
-  const MessageList({super.key, required this.transcript, required this.scrollController});
+  const MessageList({
+    super.key,
+    required this.transcript,
+    required this.scrollController,
+    this.markdown = true,
+  });
 
   final List<Turn> transcript;
   final ChatScrollController scrollController;
+  final bool markdown;
 
   @override
   Component build(BuildContext context) {
@@ -25,6 +33,7 @@ class MessageList extends StatelessComponent {
           final turn = transcript[index];
           final isUser = turn.role == 'user';
           final isNotice = turn.role == 'notice';
+          final isAssistant = !isUser && !isNotice;
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 0),
             child: Row(
@@ -43,11 +52,19 @@ class MessageList extends StatelessComponent {
                   ),
                 ),
                 Expanded(
-                  child: Text(
-                    turn.content,
-                    key: ValueKey(index),
-                    style: TextStyle(color: turn.error ? Colors.red : Colors.white),
-                  ),
+                  child: isAssistant && markdown && !turn.error
+                      ? StreamingMarkdownView(key: ValueKey('md-$index'), text: turn.content)
+                      : Text(
+                          turn.content,
+                          key: ValueKey(index),
+                          style: TextStyle(
+                            color: turn.error
+                                ? Colors.red
+                                : isNotice
+                                ? Colors.gray
+                                : Colors.white,
+                          ),
+                        ),
                 ),
               ],
             ),

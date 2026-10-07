@@ -264,7 +264,14 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/resolve/`.
   - **Files:** `lib/src/resolve/**`, tests.
   - **Scope:** S · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 13: Markdown rendering**
+- [x] **Task 13: Markdown rendering** — DONE on `feature/mvp-v0.1.0`. TDD, 33 tests:
+      `BlockSplitter` (blank-line boundaries outside fences, unclosed fences and
+      half-streamed tables stay open, CRLF, `~~~`), `renderMarkdown` goldens
+      (headings, emphasis, lists, code incl. unclosed, tables incl. half-streamed,
+      quotes, rules, links), `MarkdownBlockCache` incrementality (completed blocks
+      rendered once; frozen blocks not re-parsed as the open block grows), and the
+      `ui.markdown` toggle end-to-end through `ChatScreen`. Renderer is our own on
+      `package:markdown`'s AST per ADR 0003 — `MarkdownText` is whole-document.
   - **Description:** Incremental renderer per ADR 0003 — AST via
     `package:markdown`, re-render only the last block (block boundaries: blank line
     outside fenced code; unclosed fences and half-streamed tables stay in the open

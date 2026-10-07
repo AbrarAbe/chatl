@@ -212,7 +212,11 @@ Known TUI-chat bugs to budget for:
 - SSE sharp edges (above).
 
 **timebox note:** resolved by spike → ADR 0003 (incremental renderer viable; escape
-hatch retired).
+hatch retired). **Implemented (Task 13):** `ui/render/` — `BlockSplitter` (break on a
+blank line outside a fence; unclosed fences and half-streamed tables stay in the open
+block), `renderMarkdown` (AST → styled terminal lines on `package:markdown`),
+`MarkdownBlockCache` (completed blocks parsed once, only the open block re-parsed per
+flush), `StreamingMarkdownView`, and `ui.markdown: false` → verbatim text.
 
 ## Tech Stack
 

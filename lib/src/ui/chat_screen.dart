@@ -234,7 +234,11 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Column(
         children: [
           Expanded(
-            child: MessageList(transcript: c.transcript, scrollController: _scroll),
+            child: MessageList(
+              transcript: c.transcript,
+              scrollController: _scroll,
+              markdown: c.config.ui.markdown,
+            ),
           ),
           InputBar(
             promptPrefix: c.promptPrefix,
