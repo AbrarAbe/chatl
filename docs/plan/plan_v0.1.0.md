@@ -301,13 +301,47 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 ### Checkpoint: Complete (milestone close-out)
 
-- [ ] Every [Success Criterion](../spec.md#success-criteria) in `docs/spec.md` holds, with
-      evidence quoted.
-- [ ] All four Key Assumptions each validated or have a documented fallback here.
-- [ ] `dart analyze` clean; `dart test` green relative to the Task 1 baseline.
-- [ ] `docs/spec.md` matches shipped behavior; ADRs written for Task 0/13's rendering
-      decision and any other non-obvious call.
-- [ ] Every checkbox above ticked; bundle merged `feature/mvp-v0.1.0` → `main`.
+**Verified 2026-09-27 against release 0.1.0 scope.**
+
+- [x] **Success #1 — runs and streams.** `dart run bin/chatl.dart` chats against a
+      configured endpoint with streamed replies; user-verified live against SenseNova
+      (two live rounds: initial bring-up and after the HTTP-400 role fix).
+      First-token latency: observed as responsive; not instrumented.
+- [x] **Success #2 — MVP features work, each covered.** Config (9 tests), SSE provider
+      (12), sessions/fork ops (10), persistence + resume (9), fork-on-edit + `/history`
+      (7), commands registry + `ui.*` effects (32), `@` pipeline (12), markdown (33).
+      `/copy` is exercised through an injected clipboard; the real OSC-52 path is not
+      covered by an automated test.
+- [x] **Success #3 — markdown without corruption.** 33 tests over headings, emphasis,
+      lists, code (closed + unclosed), tables (complete + half-streamed), quotes, rules;
+      incrementality proven (frozen blocks parsed once, open block per flush). User took
+      a live look before Task 14 and reported no issues.
+- [x] **Success #4 — resume + branch.** Restart → identical transcript, `--continue`,
+      `--session <id>`, fork + flat `/history` (tests); resume verified live in the first
+      live round.
+- [x] **Success #5 — edit persists across restarts.** Covered by fork-edit tests incl.
+      resume-after-edit.
+- [x] **Success #6 — key assumptions.** #1 validated (spike: 0.47 ms vs 12.2 ms).
+      #2 validated (anchor verified headlessly; `ChatScrollController` releases on any
+      upward scroll). #3 **not validated** — "fork-on-edit is enough after ~500 messages"
+      needs real usage; branch-switch-back UI stays deferred per plan. #4 validated on
+      Linux (drift + sqlite3 FFI used throughout); **Windows untested**.
+- [x] **Success #7 — analyze clean, tests green.** `dart analyze`: no issues.
+      `dart test`: 145 passing. Baseline at Task 1 was "no test package configured"; no
+      failures or skips at any checkpoint.
+- [x] `docs/spec.md` matches shipped behaviour; ADRs 0001–0004 written (the last covering
+      the implementation-time refinements: `/edit` verb, text-stored DateTimes,
+      root-fork `linkToHead`, request-turn filtering).
+- [x] Every checkbox above ticked; bundle merged `feature/mvp-v0.1.0` → `main`.
+- [ ] **Deferred to the release skill (by design):** pubspec bump/tag/publishing.
+
+### Known gaps carried into 0.1.x
+
+- `/copy` real clipboard path untested (injected copy is).
+- Live endpoint checks are manual; no automated network test.
+- Windows not exercised; macOS not a target.
+- Token usage shows "provider did not report" when absent (no estimator).
+- Resumed sessions replay raw `@` text (re-resolution deferred with the resolvers).
 
 ## Risks and Mitigations
 
