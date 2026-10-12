@@ -1,5 +1,6 @@
 import 'package:nocterm/nocterm.dart';
 
+import '../theme.dart';
 import 'markdown_block_cache.dart';
 import 'markdown_lines.dart';
 
@@ -14,11 +15,13 @@ class StreamingMarkdownView extends StatefulComponent {
     super.key,
     required this.text,
     this.markdown = true,
+    this.theme = ChatlTheme.dark,
     this.onBlockRendered,
   });
 
   final String text;
   final bool markdown;
+  final ChatlTheme theme;
 
   /// Test hook: called once per completed block render and per open-block
   /// render, so incrementality is observable.
@@ -38,7 +41,12 @@ class _StreamingMarkdownViewState extends State<StreamingMarkdownView> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < lines.length; i++) Text(lines[i], key: ValueKey('plain-$i')),
+          for (var i = 0; i < lines.length; i++)
+            Text(
+              lines[i],
+              key: ValueKey('plain-$i'),
+              style: TextStyle(color: component.theme.paragraph),
+            ),
         ],
       );
     }
@@ -50,8 +58,7 @@ class _StreamingMarkdownViewState extends State<StreamingMarkdownView> {
       children: [
         for (var block = 0; block < _cache.completedLines.length; block++)
           for (var line = 0; line < _cache.completedLines[block].length; line++)
-            _line(_cache.completedLines[block][line],
-                key: ValueKey('frozen-$block-$line')),
+            _line(_cache.completedLines[block][line], key: ValueKey('frozen-$block-$line')),
         for (var line = 0; line < _cache.openLines.length; line++)
           _line(_cache.openLines[line], key: ValueKey('open-$line')),
       ],
@@ -59,22 +66,5 @@ class _StreamingMarkdownViewState extends State<StreamingMarkdownView> {
   }
 
   Component _line(RenderedLine line, {required Key key}) =>
-      Text(line.text, key: key, style: styleFor(line.style));
+      Text(line.text, key: key, style: component.theme.styleFor(line.style));
 }
-
-/// Terminal look per markdown line style (no font sizes in a terminal, so
-/// hierarchy comes from colour and weight).
-TextStyle styleFor(LineStyle style) => switch (style) {
-  LineStyle.h1 => const TextStyle(color: Colors.brightWhite, fontWeight: FontWeight.bold),
-  LineStyle.h2 => const TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold),
-  LineStyle.h3 => const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-  LineStyle.h4 ||
-  LineStyle.h5 ||
-  LineStyle.h6 => const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-  LineStyle.paragraph => const TextStyle(color: Colors.white),
-  LineStyle.bullet || LineStyle.ordered => const TextStyle(color: Colors.white),
-  LineStyle.codeBlock => const TextStyle(color: Colors.yellow),
-  LineStyle.quote => const TextStyle(color: Colors.gray),
-  LineStyle.table => const TextStyle(color: Colors.cyan),
-  LineStyle.rule => const TextStyle(color: Colors.gray),
-};

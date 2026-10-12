@@ -6,6 +6,7 @@ import '../commands/registry.dart';
 import '../session/session_controller.dart';
 import 'chat_scroll_controller.dart';
 import 'coalescer.dart';
+import 'theme.dart';
 import 'widgets/history_overlay.dart';
 import 'widgets/input_bar.dart';
 import 'widgets/message_list.dart';
@@ -46,6 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   late SessionController _controller;
   late SlashRegistry _registry;
+  late ChatlTheme _theme;
   StreamSubscription<void>? _updates;
   bool _historyOpen = false;
 
@@ -55,6 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
     component.onScrollControllerReady?.call(_scroll);
     _controller = component.controller;
     _registry = SlashRegistry(config: _controller.config);
+    _theme = ChatlTheme.forName(_controller.config.ui.theme);
     _updates = _controller.updates.listen((_) {
       _coalescer.schedule(() {
         if (mounted) setState(() {});
@@ -74,6 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _updates?.cancel();
     _controller = controller;
     _registry = SlashRegistry(config: controller.config);
+    _theme = ChatlTheme.forName(controller.config.ui.theme);
     _updates = controller.updates.listen((_) {
       _coalescer.schedule(() {
         if (mounted) setState(() {});
@@ -238,11 +242,13 @@ class _ChatScreenState extends State<ChatScreen> {
               transcript: c.transcript,
               scrollController: _scroll,
               markdown: c.config.ui.markdown,
+              theme: _theme,
             ),
           ),
           InputBar(
             promptPrefix: c.promptPrefix,
             controller: _input,
+            theme: _theme,
             enabled: !c.streaming,
             hint: c.streaming ? 'streaming…' : 'type a message…',
             onSubmitted: _submit,
@@ -254,7 +260,7 @@ class _ChatScreenState extends State<ChatScreen> {
               '${c.streaming ? ' · …' : ''}'
               '${_scroll.isAutoScrollEnabled ? '' : ' · paused (↓ to resume)'}'
               ' · /model /persona /history /context /new',
-              style: const TextStyle(color: Colors.gray),
+              style: TextStyle(color: _theme.status),
             ),
           ),
         ],

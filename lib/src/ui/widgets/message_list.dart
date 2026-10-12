@@ -3,21 +3,24 @@ import 'package:nocterm/nocterm.dart';
 import '../../session/session_controller.dart';
 import '../chat_scroll_controller.dart';
 import '../render/streaming_markdown_view.dart';
+import '../theme.dart';
 
 /// Scrollable list of conversation turns. Assistant turns render as markdown
 /// when `ui.markdown` is enabled (ADR 0003); user turns and notices stay
-/// verbatim.
+/// verbatim. Colours come from the `ui.theme` palette.
 class MessageList extends StatelessComponent {
   const MessageList({
     super.key,
     required this.transcript,
     required this.scrollController,
     this.markdown = true,
+    this.theme = ChatlTheme.dark,
   });
 
   final List<Turn> transcript;
   final ChatScrollController scrollController;
   final bool markdown;
+  final ChatlTheme theme;
 
   @override
   Component build(BuildContext context) {
@@ -42,27 +45,23 @@ class MessageList extends StatelessComponent {
                 Text(
                   isUser ? '❯ ' : (isNotice ? 'ℹ ' : (turn.error ? '✗ ' : '◆ ')),
                   style: TextStyle(
-                    color: turn.error
-                        ? Colors.red
-                        : isNotice
-                        ? Colors.gray
-                        : isUser
-                        ? Colors.green
-                        : Colors.cyan,
+                    color: theme.accentFor(isUser: isUser, isNotice: isNotice, isError: turn.error),
                   ),
                 ),
                 Expanded(
                   child: isAssistant && markdown && !turn.error
-                      ? StreamingMarkdownView(key: ValueKey('md-$index'), text: turn.content)
+                      ? StreamingMarkdownView(
+                          key: ValueKey('md-$index'),
+                          text: turn.content,
+                          theme: theme,
+                        )
                       : Text(
                           turn.content,
                           key: ValueKey(index),
-                          style: TextStyle(
-                            color: turn.error
-                                ? Colors.red
-                                : isNotice
-                                ? Colors.gray
-                                : Colors.white,
+                          style: theme.styleForRole(
+                            isUser: isUser,
+                            isNotice: isNotice,
+                            isError: turn.error,
                           ),
                         ),
                 ),

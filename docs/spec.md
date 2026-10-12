@@ -123,9 +123,9 @@ persona:
   default: "Concise technical assistant. Terse. No preamble."
   review: "Act as a skeptical code reviewer. Flag the bad ideas."
 ui:
-  theme: dark
+  theme: dark          # dark | light (unknown names fall back to dark)
   prompt_prefix: "❯"
-  markdown: true
+  markdown: true       # false → replies render verbatim
 commands:
   - name: recap
     prompt: Summarize our conversation in 5 bullets.

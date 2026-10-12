@@ -1,5 +1,7 @@
 import 'package:nocterm/nocterm.dart';
 
+import '../theme.dart';
+
 /// Input line with the configured prompt prefix.
 ///
 /// After each submit the local `TextField` key is bumped: nocterm's TextField
@@ -10,6 +12,7 @@ class InputBar extends StatefulComponent {
     required this.promptPrefix,
     required this.controller,
     required this.onSubmitted,
+    this.theme = ChatlTheme.dark,
     this.enabled = true,
     this.hint = 'type a message…',
   });
@@ -17,6 +20,7 @@ class InputBar extends StatefulComponent {
   final String promptPrefix;
   final TextEditingController controller;
   final ValueChanged<String> onSubmitted;
+  final ChatlTheme theme;
   final bool enabled;
   final String hint;
 
@@ -40,13 +44,15 @@ class _InputBarState extends State<InputBar> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 1),
       decoration: BoxDecoration(
-        border: BoxBorder(top: BorderSide(color: Colors.cyan)),
+        border: BoxBorder(top: BorderSide(color: component.theme.border)),
       ),
       child: Row(
         children: [
           Text(
             '${component.promptPrefix} ',
-            style: TextStyle(color: component.enabled ? Colors.green : Colors.gray),
+            style: TextStyle(
+              color: component.enabled ? component.theme.prompt : component.theme.status,
+            ),
           ),
           Expanded(
             child: TextField(
@@ -54,6 +60,7 @@ class _InputBarState extends State<InputBar> {
               controller: component.controller,
               focused: true,
               placeholder: component.hint,
+              style: TextStyle(color: component.theme.paragraph),
               onSubmitted: _submit,
             ),
           ),

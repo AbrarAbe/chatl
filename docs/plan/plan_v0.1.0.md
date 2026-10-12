@@ -284,7 +284,13 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Files:** `lib/src/ui/render/**`, tests.
   - **Scope:** L · bundle · TDD on renderer (golden strings), widget tests for the toggle
     path.
-- [ ] **Task 14: UI config polish**
+- [x] **Task 14: UI config polish** — DONE on `feature/mvp-v0.1.0`. TDD, 9 tests:
+      `ChatlTheme` (dark | light palettes, case-insensitive, unknown → dark so a typo
+      never renders unreadable text; markdown styles and per-role accents derive from the
+      palette) + cell-level widget assertions that the two palettes really paint
+      differently, that an unknown name falls back to dark, and that `ui.prompt_prefix`
+      is what the input line shows. `ui.markdown` toggle already covered in Task 13;
+      all three `ui.*` keys now have visible, tested effects.
   - **Description:** Theme (`ui.theme`), `prompt_prefix`, `ui.markdown` toggle wired
     through to the shell; token display polish; final UI consistency pass.
   - **Acceptance:** Each `ui.*` config key has visible effect; absence falls back to
