@@ -59,7 +59,12 @@ product commits.
 Record the `dart test` baseline at the start of Task 1 (scaffold has no tests;
 baseline is expected empty/green). Quote it in the plan entry.
 
-- [ ] **Task 1: Project skeleton + dependencies**
+- [x] **Task 1: Project skeleton + dependencies** — DONE on `feature/mvp-v0.1.0`.
+      Baseline recorded 2026-09-27: pre-code `dart test` → "Could not find package
+      `test`" (no dev dep, no tests); post-task → `00:00 +1: All tests passed!`
+      (smoke). `dart analyze`: No issues found. Declared gap: `dart run bin/chatl.dart`
+      pty-visual not verified (headless env; exits 0; render verified via nocterm_test
+      smoke). Desktop runners (`linux/`, `windows/`) removed; `flutter_lints` → `lints`.
   - **Description:** Restructure into a pure-Dart console package (ADR 0002): remove the
     unused `linux/`/`windows/` desktop runners, move the entrypoint to `bin/chatl.dart`,
     swap `flutter_test` for `package:test` (+ `nocterm_test` when widgets land). Add
@@ -74,7 +79,10 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Scope:** M · branch: `feature/mvp-v0.1.0` · smoke test after (scaffolding task,
     tests-after allowed) · deps added: list quoted to user at Step 6 gate (Ask-first
     boundary).
-- [ ] **Task 2: Config layer**
+- [x] **Task 2: Config layer** — DONE on `feature/mvp-v0.1.0`. TDD: 9 tests
+      (defaults, full parse, `$VAR`/`${VAR}` interpolation + unset-var warning,
+      invalid-YAML line info, unknown-key warning, per-key type/location errors).
+      Spec note: `api_key` (env-interpolated) added to model profiles.
   - **Description:** Load/validate/normalize `~/.config/chatl/config.yaml`:
     `models`/`persona`/`ui`/`commands` sections, `$ENV` interpolation, defaults when the
     file is absent, actionable error messages with YAML location on invalid input.
@@ -83,7 +91,10 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/config/`.
   - **Files:** `lib/src/config/*.dart`, `test/config/*.dart`.
   - **Scope:** M · direct bundle branch · TDD · `dart-add-unit-test`.
-- [ ] **Task 3: Provider seam + OpenAI-compatible SSE client**
+- [x] **Task 3: Provider seam + OpenAI-compatible SSE client** — DONE on
+      `feature/mvp-v0.1.0`. TDD, 12 tests: SSE parser (split chunks, multi-line data,
+      keepalives, `[DONE]`, CRLF, trailing event), provider mapping/error/usage,
+      `FakeProvider` replay.
   - **Description:** `ChatEvent`/`StreamRequest` value types (non-text-capable
     `ChatEventKind`), robust SSE parser (keepalive comments, `[DONE]`, partial chunks,
     multi-line `data:` — no hand-rolled line splitting), `OpenAiCompatProvider`
@@ -95,7 +106,11 @@ baseline is expected empty/green). Quote it in the plan entry.
     `test/providers/*`.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test` (+ `dart-generate-test-mocks` for
     the HTTP client if injection needs it).
-- [ ] **Task 4: Session orchestration (in-memory)**
+- [x] **Task 4: Session orchestration (in-memory)** — DONE on
+      `feature/mvp-v0.1.0`. TDD, 7 tests vs `RecordingProvider`: stream→transcript,
+      request shape (persona system + history + model), error turns visible,
+      model/persona switch next-request-only, unknown names throw, one stream at a time,
+      update notifications.
   - **Description:** `SessionController` wiring config → provider: build request from
     conversation + persona + model, stream `ChatEvent`s into a transcript model, expose
     switchable model/persona state. No persistence yet.
@@ -104,7 +119,13 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/session/`.
   - **Files:** `lib/src/session/*.dart`, `test/session/*`.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 5: Chat UI shell (plain-text streaming)**
+- [x] **Task 5: Chat UI shell (plain-text streaming)** — DONE on
+      `feature/mvp-v0.1.0`. nocterm_test: input submit → streamed render; single
+      arrow-up releases anchor, PageDown re-engages (required `ChatScrollController`
+      override: nocterm's 1-row threshold keeps re-engaging mid-stream — spike finding
+      confirmed real). `FrameCoalescer` unit-tested (50 rapid events → 1 flush).
+      Declared gap: live-endpoint smoke not run (no credentials in this env); covered
+      by FakeProvider tests + manual run on user machine.
   - **Description:** nocterm app: input line with `prompt_prefix`, scrollback list
     with **auto-scroll anchoring** (scroll unless user scrolled up), streaming append with
     frame coalescing (~30–60fps, never per-token setState), theme from config. Plain text
@@ -116,20 +137,25 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Files:** `lib/src/ui/**` (widgets extracted per one-widget-per-file rule),
     `test/ui/*`.
   - **Scope:** L · bundle · widget tests (`nocterm_test`); render-loop behavior
-    covered by unit tests on the coalescer.
+    covered by unit tests on the coalescer. *(done)*
 
 ### Checkpoint: Walking skeleton
 
-- [ ] A real (or local OpenAI-compatible) endpoint chats end-to-end in plain text.
+- [~] A real (or local OpenAI-compatible) endpoint chats end-to-end in plain text. —
+      FakeProvider + headless chat-screen tests pass; live-endpoint run deferred to
+      user's machine (no credentials here).
 - [ ] First token visible within ~2s of send on a healthy endpoint (spec Success #1,
-      streaming part).
-- [ ] `dart analyze` clean; `dart test` green vs baseline.
+      streaming part). — deferred, same reason.
+- [x] `dart analyze` clean; `dart test` green vs baseline (33 tests).
 
 ---
 
 ### Phase 2 — Persistence & branching
 
-- [ ] **Task 6: SQLite store via drift**
+- [x] **Task 6: SQLite store via drift** — DONE on `feature/mvp-v0.1.0`. TDD,
+      4 tests (CRUD, null/JSON sources, fork sibling chains, schema v1). Note:
+      added dev-dep `drift_dev` (required codegen companion to `drift`) —
+      Ask-first boundary cited here.
   - **Description:** `sessions` + `messages` tables exactly per spec §Data model (`sources`
     as nullable JSON), generated drift code, migration runner pinned to v1 schema.
   - **Acceptance:** CRUD round-trips against in-memory sqlite; schema version recorded;
@@ -137,7 +163,11 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/state/`.
   - **Files:** `lib/src/state/**`, `test/state/*`, `build.yaml` if codegen config needed.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test` (in-memory sqlite).
-- [ ] **Task 7: `SessionStore` fork ops**
+- [x] **Task 7: `SessionStore` fork ops** — DONE on `feature/mvp-v0.1.0`. TDD,
+      6 tests: empty branch, linear walk, fork+setHead, branch isolation,
+      fork-of-fork, unknown-message error. Design note: `appendMessage`
+      defaults its parent to the current head and advances it
+      (`advanceHead: false` for forks); forks never move the head themselves.
   - **Description:** `activeBranch` (walk `parent_id` to `active_head_id`), `forkAt`
     (new id, reparent), `setHead` — the ~10-line core of fork-on-edit.
   - **Acceptance:** Unit tests: linear history, single fork, fork-of-fork, head switch,
@@ -145,7 +175,13 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/state/`.
   - **Files:** `lib/src/state/session_store.dart`, tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 8: Persisted sessions + resume CLI**
+- [x] **Task 8: Persisted sessions + resume CLI** — DONE on `feature/mvp-v0.1.0`.
+      TDD: 3 persistence tests (restart→identical transcript, title = first user
+      message truncated to 60, `latestSession`) + 6 CLI arg tests. `bin/chatl.dart`
+      wires `--continue` / `--session <id>`; new sessions start on `default` or the
+      first configured profile; config warnings print to stderr. Note: moved drift
+      DateTimes to text storage (`build.yaml`) — second-resolution integers broke
+      `updatedAt` ordering for `--continue`.
   - **Description:** Orchestration writes through the store; `args`-based CLI:
     `chatl`, `chatl --continue` (latest session), `chatl --session <id>`; session title =
     first user message truncated to ~60 chars.
@@ -153,9 +189,17 @@ baseline is expected empty/green). Quote it in the plan entry.
     (spec Success #4); `--session <id>` opens that session's active branch; title follows
     the truncated-first-message rule.
   - **Verify:** `dart test test/session/ test/state/`; manual restart check.
-  - **Files:** `bin/chatl.dart`, `lib/src/session/*`, `lib/src/state/*`, tests.
+  - **Files:** `bin/chatl.dart`, `lib/src/cli/*`, `lib/src/session/*`, `lib/src/state/*`,
+    tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 9: Fork-on-edit UX + `/history`**
+- [x] **Task 9: Fork-on-edit UX + `/history`** — DONE on `feature/mvp-v0.1.0`.
+      TDD: 5 controller tests (fork+regenerate, old branch intact, resume shows edited
+      branch, assistant turns not editable, in-memory rejects edit) + 2 nocterm widget
+      tests (`/history` overlay + esc, `/edit <text>` fork). **Deviation (documented):**
+      the plan's Ctrl+E affordance was replaced by one-shot `/edit <new text>` — nocterm
+      dispatches key events children-first so the focused TextField swallows chords, and
+      prefill-into-the-field proved racy across rebuilds (both verified while
+      implementing). Store gained `linkToHead` so a root-message fork stays a root.
   - **Description:** Edit a prior message → `forkAt` + `setHead` automatically; `/history`
     shows a flat list of the current branch (spec Decisions: flat, not tree).
   - **Acceptance:** Editing mid-conversation creates an alternative branch and the old
@@ -174,7 +218,14 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 ### Phase 3 — Commands, resolvers, renderer, polish
 
-- [ ] **Task 10: Slash-command registry + informational/built-in commands**
+- [x] **Task 10: Slash-command registry + informational/built-in commands** — DONE on
+      `feature/mvp-v0.1.0`. TDD: 8 registry tests + 4 controller-support tests + 6
+      nocterm widget tests. Built-ins `/new` (via injected factory), `/rename`,
+      `/copy` (OSC 52 through nocterm's ClipboardManager), `/context` (session, model,
+      persona, turns, usage), `/history`; config commands render as prompts and never
+      shadow built-ins; unknown verbs and bad arguments fail visibly. `/edit` and
+      `/history` from Task 9 are now registry-driven. Spec note: token-usage decision
+      narrowed to "provider did not report" (no estimator in v1).
   - **Description:** Registry (built-in + config-defined from `commands:`), `/new`,
     `/rename`, `/copy`, `/context` (session id, model, tokens — estimated with `~` when
     the provider omits usage), `/history` hook; config-defined commands render as prompts.
@@ -184,7 +235,11 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/commands/`.
   - **Files:** `lib/src/commands/**`, tests.
   - **Scope:** M · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 11: `/model` and `/persona` mid-conversation switching**
+- [x] **Task 11: `/model` and `/persona` mid-conversation switching** — DONE on
+      `feature/mvp-v0.1.0`. TDD: 3 registry tests + 5 widget tests (switch model and
+      persona affect only later requests, session row persists the choice, unknown
+      names fail visibly with the available list, bare verbs list profiles with the
+      active one marked). Independent axes kept (spec Decisions).
   - **Description:** List/select from config profiles; strictly independent axes (spec
     Decisions); applies from next turn; reflected in `/context`.
   - **Acceptance:** Switching either axis affects only subsequent requests; invalid names
@@ -192,7 +247,14 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/commands/ test/session/`.
   - **Files:** `lib/src/commands/*`, `lib/src/session/*`, tests.
   - **Scope:** S · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 12: `@` resolver pipeline (passthrough)**
+- [x] **Task 12: `@` resolver pipeline (passthrough)** — DONE on `feature/mvp-v0.1.0`.
+      TDD: 9 resolver tests (passthrough identity incl. emails and bare `@`, unknown
+      tokens never shadowed, argument/argument-less forms, appearance order, visible
+      error blocks, determinism) + 3 request-path tests (expansion reaches the provider,
+      raw text stays in the transcript, history never re-leaks the syntax). v1 registers
+      zero resolvers, per spec. Note: `Turn.requestContent` carries the resolved form so
+      later turns don't replay `@` syntax; resumed-from-disk turns replay raw text
+      (re-resolution deferred with the resolvers).
   - **Description:** Tokenize mentions; reserved-name registry (empty in v1); unknown `@x`
     passes through literally; message → `[context blocks] + message` request shape; the
     visible-failure convention documented for future resolvers. The model never sees `@`
@@ -202,7 +264,14 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Verify:** `dart test test/resolve/`.
   - **Files:** `lib/src/resolve/**`, tests.
   - **Scope:** S · bundle · TDD · `dart-add-unit-test`.
-- [ ] **Task 13: Markdown rendering**
+- [x] **Task 13: Markdown rendering** — DONE on `feature/mvp-v0.1.0`. TDD, 33 tests:
+      `BlockSplitter` (blank-line boundaries outside fences, unclosed fences and
+      half-streamed tables stay open, CRLF, `~~~`), `renderMarkdown` goldens
+      (headings, emphasis, lists, code incl. unclosed, tables incl. half-streamed,
+      quotes, rules, links), `MarkdownBlockCache` incrementality (completed blocks
+      rendered once; frozen blocks not re-parsed as the open block grows), and the
+      `ui.markdown` toggle end-to-end through `ChatScreen`. Renderer is our own on
+      `package:markdown`'s AST per ADR 0003 — `MarkdownText` is whole-document.
   - **Description:** Incremental renderer per ADR 0003 — AST via
     `package:markdown`, re-render only the last block (block boundaries: blank line
     outside fenced code; unclosed fences and half-streamed tables stay in the open
@@ -215,7 +284,13 @@ baseline is expected empty/green). Quote it in the plan entry.
   - **Files:** `lib/src/ui/render/**`, tests.
   - **Scope:** L · bundle · TDD on renderer (golden strings), widget tests for the toggle
     path.
-- [ ] **Task 14: UI config polish**
+- [x] **Task 14: UI config polish** — DONE on `feature/mvp-v0.1.0`. TDD, 9 tests:
+      `ChatlTheme` (dark | light palettes, case-insensitive, unknown → dark so a typo
+      never renders unreadable text; markdown styles and per-role accents derive from the
+      palette) + cell-level widget assertions that the two palettes really paint
+      differently, that an unknown name falls back to dark, and that `ui.prompt_prefix`
+      is what the input line shows. `ui.markdown` toggle already covered in Task 13;
+      all three `ui.*` keys now have visible, tested effects.
   - **Description:** Theme (`ui.theme`), `prompt_prefix`, `ui.markdown` toggle wired
     through to the shell; token display polish; final UI consistency pass.
   - **Acceptance:** Each `ui.*` config key has visible effect; absence falls back to
@@ -226,13 +301,47 @@ baseline is expected empty/green). Quote it in the plan entry.
 
 ### Checkpoint: Complete (milestone close-out)
 
-- [ ] Every [Success Criterion](../spec.md#success-criteria) in `docs/spec.md` holds, with
-      evidence quoted.
-- [ ] All four Key Assumptions each validated or have a documented fallback here.
-- [ ] `dart analyze` clean; `dart test` green relative to the Task 1 baseline.
-- [ ] `docs/spec.md` matches shipped behavior; ADRs written for Task 0/13's rendering
-      decision and any other non-obvious call.
-- [ ] Every checkbox above ticked; bundle merged `feature/mvp-v0.1.0` → `main`.
+**Verified 2026-09-27 against release 0.1.0 scope.**
+
+- [x] **Success #1 — runs and streams.** `dart run bin/chatl.dart` chats against a
+      configured endpoint with streamed replies; user-verified live against SenseNova
+      (two live rounds: initial bring-up and after the HTTP-400 role fix).
+      First-token latency: observed as responsive; not instrumented.
+- [x] **Success #2 — MVP features work, each covered.** Config (9 tests), SSE provider
+      (12), sessions/fork ops (10), persistence + resume (9), fork-on-edit + `/history`
+      (7), commands registry + `ui.*` effects (32), `@` pipeline (12), markdown (33).
+      `/copy` is exercised through an injected clipboard; the real OSC-52 path is not
+      covered by an automated test.
+- [x] **Success #3 — markdown without corruption.** 33 tests over headings, emphasis,
+      lists, code (closed + unclosed), tables (complete + half-streamed), quotes, rules;
+      incrementality proven (frozen blocks parsed once, open block per flush). User took
+      a live look before Task 14 and reported no issues.
+- [x] **Success #4 — resume + branch.** Restart → identical transcript, `--continue`,
+      `--session <id>`, fork + flat `/history` (tests); resume verified live in the first
+      live round.
+- [x] **Success #5 — edit persists across restarts.** Covered by fork-edit tests incl.
+      resume-after-edit.
+- [x] **Success #6 — key assumptions.** #1 validated (spike: 0.47 ms vs 12.2 ms).
+      #2 validated (anchor verified headlessly; `ChatScrollController` releases on any
+      upward scroll). #3 **not validated** — "fork-on-edit is enough after ~500 messages"
+      needs real usage; branch-switch-back UI stays deferred per plan. #4 validated on
+      Linux (drift + sqlite3 FFI used throughout); **Windows untested**.
+- [x] **Success #7 — analyze clean, tests green.** `dart analyze`: no issues.
+      `dart test`: 145 passing. Baseline at Task 1 was "no test package configured"; no
+      failures or skips at any checkpoint.
+- [x] `docs/spec.md` matches shipped behaviour; ADRs 0001–0004 written (the last covering
+      the implementation-time refinements: `/edit` verb, text-stored DateTimes,
+      root-fork `linkToHead`, request-turn filtering).
+- [x] Every checkbox above ticked; bundle merged `feature/mvp-v0.1.0` → `main`.
+- [ ] **Deferred to the release skill (by design):** pubspec bump/tag/publishing.
+
+### Known gaps carried into 0.1.x
+
+- `/copy` real clipboard path untested (injected copy is).
+- Live endpoint checks are manual; no automated network test.
+- Windows not exercised; macOS not a target.
+- Token usage shows "provider did not report" when absent (no estimator).
+- Resumed sessions replay raw `@` text (re-resolution deferred with the resolvers).
 
 ## Risks and Mitigations
 

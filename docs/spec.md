@@ -118,13 +118,14 @@ models:
   default: gpt-4o
   cheap: { model: gpt-4o-mini }
   local: { base_url: http://localhost:11434/v1, model: qwen2.5 }
+  openai: { model: gpt-4o, base_url: https://api.openai.com/v1, api_key: $OPENAI_API_KEY }
 persona:
   default: "Concise technical assistant. Terse. No preamble."
   review: "Act as a skeptical code reviewer. Flag the bad ideas."
 ui:
-  theme: dark
+  theme: dark          # dark | light (unknown names fall back to dark)
   prompt_prefix: "❯"
-  markdown: true
+  markdown: true       # false → replies render verbatim
 commands:
   - name: recap
     prompt: Summarize our conversation in 5 bullets.
@@ -137,8 +138,16 @@ commands:
 ### `/` — verbs
 
 Slash commands transform the turn and take no payload: `/recap`, `/model`, `/persona`,
-`/history`, `/context`, `/copy`, `/rename`, `/new`. User-defined entries come from config
-and render as prompts against the current conversation.
+`/history`, `/edit <new text>`, `/context`, `/copy`, `/rename`, `/new`. User-defined
+entries come from config and render as prompts against the current conversation.
+
+### Fork-on-edit
+
+`/edit <new text>` replaces the most recent user turn: it forks the branch at that
+message's parent, moves the session head to the fork, and regenerates the assistant
+reply. The old branch is left intact in the store. (A Ctrl+E-style chord was rejected:
+nocterm dispatches key events children-first, so the focused input field swallows chords
+before the screen's handler — see plan_v0.1.0 Task 9.)
 
 ### `@` — references
 
@@ -163,10 +172,16 @@ Rules:
 
 - **Composable** — multiple refs per message: `@fetch A @fetch B — compare these`.
 - **Uniform** — one syntax; a new resolver is config plus a small registered function.
-- **Fails visibly** — dead URL / timeout → inline error block in the transcript, never a
-  silent drop.
+- **Fails visibly** — dead URL / timeout → inline `[CONTEXT ERROR …]` block in the
+  request, never a silent drop.
 - **Unknown passes through literally** — `@someone@example.com` stays harmless. Reserved
   names are exactly the registered resolver set; they must never shadow unknown tokens.
+- **v1 ships zero resolvers.** The pipeline (tokenize → expand → `[CONTEXT …]` blocks +
+  `Q: …`) is implemented and tested with fakes so `@fetch`/`@search` are additions, not
+  rework. Resolved content rides on the turn (`Turn.requestContent`) so later requests
+  never replay the syntax; `@` at line start or after whitespace only, so email
+  addresses are never mentions. Turns restored from disk replay their raw text
+  (re-resolution on resume is deferred with the resolvers themselves).
 
 `/recap @fetch https://x` is ill-formed — the small grammar is a feature (`/` transforms,
 `@` attaches).
@@ -180,7 +195,8 @@ Handle explicitly: `: OPENAI` keepalive comments, `[DONE]`, partial chunks, mult
 
 Editing a message creates a new branch: the edited message gets a new id with
 `parent_id` pointing at the previous message's parent, and the session's `active_head_id`
-moves to the edited message. No DAG navigation UI in v1.
+moves to the edited message. No DAG navigation UI in v1. `/history` lists the current
+branch flat.
 
 ## The Risk Module (streaming markdown renderer)
 
@@ -196,7 +212,11 @@ Known TUI-chat bugs to budget for:
 - SSE sharp edges (above).
 
 **timebox note:** resolved by spike → ADR 0003 (incremental renderer viable; escape
-hatch retired).
+hatch retired). **Implemented (Task 13):** `ui/render/` — `BlockSplitter` (break on a
+blank line outside a fence; unclosed fences and half-streamed tables stay in the open
+block), `renderMarkdown` (AST → styled terminal lines on `package:markdown`),
+`MarkdownBlockCache` (completed blocks parsed once, only the open block re-parsed per
+flush), `StreamingMarkdownView`, and `ui.markdown: false` → verbatim text.
 
 ## Tech Stack
 
@@ -220,10 +240,15 @@ scaffold (`linux/`, `windows/`, `flutter_test`) does not apply (ADR 0002).
 
 ```
 Run (dev):   dart run bin/chatl.dart       # or compiled: dart compile exe bin/chatl.dart
+Resume:      dart run bin/chatl.dart --continue        # latest session
+             dart run bin/chatl.dart --session <id>
 Test:        dart test
 Analyze:     dart analyze                  # MCP: analyze_files
 Pub:         dart pub get
 ```
+
+Config and database live under `~/.config/chatl/` (`config.yaml`, `chatl.db`);
+config warnings are printed to stderr at startup.
 
 ## Versioning
 
@@ -241,7 +266,8 @@ Plan files are **coupled to app release milestones**:
 
 ## Code Style
 
-- `flutter_lints` (`analysis_options.yaml`), `dart format`, no deviations without reason.
+- `package:lints` (recommended; `analysis_options.yaml`), `dart format`, no deviations
+  without reason.
 - One public widget class per file; new widgets live in the sibling `widgets/` directory
   (e.g. `lib/src/ui/chat/widgets/message_list.dart`) — never new private widget classes in
   a pane/shell/sidebar. Private `State` classes stay alongside their widget.
@@ -343,7 +369,7 @@ Adopted from the suggestions in `docs/ideas/chatl.md`:
 | `/history` presentation | Flat current-branch list; tree only if it proves necessary |
 | Persona × model composition | Independent axes — never coupled |
 | Session title default | First user message, truncated (~60 chars); no LLM-generated title in v1 |
-| Token counting when provider omits usage | Estimate locally and display with `~` marker; never block the UI on it |
+| Token counting when provider omits usage | Show `usage: provider did not report` in `/context`; no local estimator in v1 (implemented in Task 10) |
 | Citation UX (post-v1) | Trailing sources block plus a toggle; no inline footnotes in a TUI |
 | `@search` with no backend configured | Fail visibly with an inline error block |
 | Context block size cap | Configurable cap (default 100 KB / resolver); truncate with a visible notice, never reject silently |
