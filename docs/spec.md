@@ -250,6 +250,35 @@ Pub:         dart pub get
 Config and database live under `~/.config/chatl/` (`config.yaml`, `chatl.db`);
 config warnings are printed to stderr at startup.
 
+`chatl --version` prints the build's version. `pubspec.yaml` is the single source of
+truth for it; release builds inject it (`--define=CHATL_VERSION=<version>`) and a
+development `dart run` reports `dev`.
+
+## Distribution
+
+Released as platform binaries on GitHub Releases, installed by script:
+
+```sh
+# Linux
+curl -fsSL https://raw.githubusercontent.com/<owner>/chatl/main/install.sh | sh
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/<owner>/chatl/main/install.ps1 | iex
+```
+
+- Asset per platform: `chatl-<version>-linux-x64.zip`, `chatl-<version>-windows-x64.zip`,
+  each containing the binary, the bundled `sqlite3` library, and a short README, with
+  `SHA256SUMS` covering the set.
+- Install scripts verify the checksum before installing, install to `~/.local/bin`
+  (Linux) or `%LOCALAPPDATA%\chatl` (Windows), print a PATH hint, accept
+  `--version <v>` to pin, and support `--uninstall`.
+- **sqlite3 is bundled** rather than assumed present: Windows has no system `sqlite3.dll`,
+  and minimal Linux images may lack `libsqlite3.so`. A bundled library beside the binary is
+  preferred over the system one.
+- The version bump, tag and release notes are the release skill's job; CI only builds,
+  checksums and uploads, and refuses a tag that disagrees with `pubspec.yaml`.
+- `dart pub global activate chatl` is a planned convenience path (no build matrix needed),
+  not part of 0.2.0.
+
 ## Versioning
 
 Plan files are **coupled to app release milestones**:
