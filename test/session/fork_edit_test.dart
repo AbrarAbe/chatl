@@ -28,10 +28,17 @@ void main() {
     await db.close();
   });
 
-  Future<Session> newSession() =>
-      store.createSession(id: 's1', title: '(untitled)', model: 'default', persona: 'default');
+  Future<Session> newSession() => store.createSession(
+    id: 's1',
+    title: '(untitled)',
+    model: 'default',
+    persona: 'default',
+  );
 
-  Future<SessionController> controllerWith(RecordingProvider provider, Session session) async {
+  Future<SessionController> controllerWith(
+    RecordingProvider provider,
+    Session session,
+  ) async {
     final controller = SessionController.resume(
       config: testConfig(),
       providerFor: (_) => provider,
@@ -82,14 +89,20 @@ void main() {
       await controller.send('original question');
       final originalAssistant = controller.transcript[1];
 
-      await controller.editTurn(controller.transcript[0].id!, 'revised question');
+      await controller.editTurn(
+        controller.transcript[0].id!,
+        'revised question',
+      );
 
       // original assistant reply still exists by id, pointing at old user turn
       final stored = await store.getMessage(originalAssistant.id!);
       expect(stored.content, 'answer one');
 
       final branch = await store.activeBranch(await store.getSession('s1'));
-      expect(branch.map((m) => m.content).toList(), ['revised question', 'regenerated']);
+      expect(branch.map((m) => m.content).toList(), [
+        'revised question',
+        'regenerated',
+      ]);
     });
 
     test('resume after edit shows the edited branch (Success #5)', () async {
@@ -101,8 +114,14 @@ void main() {
       await controller.send('q1');
       await controller.editTurn(controller.transcript[0].id!, 'q1 revised');
 
-      final resumed = await controllerWith(provider, await store.getSession('s1'));
-      expect(resumed.transcript.map((t) => t.content).toList(), ['q1 revised', 'a2']);
+      final resumed = await controllerWith(
+        provider,
+        await store.getSession('s1'),
+      );
+      expect(resumed.transcript.map((t) => t.content).toList(), [
+        'q1 revised',
+        'a2',
+      ]);
     });
 
     test('editing an assistant turn is rejected', () async {
@@ -112,7 +131,10 @@ void main() {
       final controller = await controllerWith(provider, await newSession());
       await controller.send('q1');
 
-      expect(() => controller.editTurn(controller.transcript[1].id!, 'x'), throwsArgumentError);
+      expect(
+        () => controller.editTurn(controller.transcript[1].id!, 'x'),
+        throwsArgumentError,
+      );
     });
 
     test('in-memory controllers reject editTurn (nothing to fork)', () async {
@@ -134,7 +156,10 @@ void main() {
       await controller.send('q1');
 
       final history = controller.history();
-      expect(history.map((h) => '${h.role}:${h.preview}').toList(), ['user:q1', 'assistant:a1']);
+      expect(history.map((h) => '${h.role}:${h.preview}').toList(), [
+        'user:q1',
+        'assistant:a1',
+      ]);
     });
   });
 }

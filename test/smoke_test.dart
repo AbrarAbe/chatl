@@ -6,7 +6,10 @@ import 'package:test/test.dart';
 
 void main() {
   test('app shell renders', () async {
-    final config = await Config.load(path: '/nonexistent/chatl.yaml', environment: const {});
+    final config = await Config.load(
+      path: '/nonexistent/chatl.yaml',
+      environment: const {},
+    );
     final controller = SessionController(
       config: config,
       providerFor: (_) => throw StateError('no provider in smoke test'),

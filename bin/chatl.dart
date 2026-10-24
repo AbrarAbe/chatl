@@ -74,7 +74,8 @@ Future<void> main(List<String> argv) async {
   final controller = await controllerFor(session);
 
   // `/new`: fresh persisted session, same config/store (spec §MVP Scope).
-  Future<SessionController> newSession() async => controllerFor(await createPersistedSession());
+  Future<SessionController> newSession() async =>
+      controllerFor(await createPersistedSession());
 
   await runApp(ChatlApp(controller: controller, newSession: newSession));
   await db.close();

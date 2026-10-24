@@ -20,13 +20,22 @@ void main() {
     });
 
     test('conflicting flags are rejected', () {
-      expect(() => parseArgs(['--continue', '--session', 'x']), throwsA(isA<UsageException>()));
+      expect(
+        () => parseArgs(['--continue', '--session', 'x']),
+        throwsA(isA<UsageException>()),
+      );
     });
 
     test('unknown flag is rejected', () {
       expect(
         () => parseArgs(['--nope']),
-        throwsA(isA<UsageException>().having((e) => e.message, 'message', contains('--nope'))),
+        throwsA(
+          isA<UsageException>().having(
+            (e) => e.message,
+            'message',
+            contains('--nope'),
+          ),
+        ),
       );
     });
 

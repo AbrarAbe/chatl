@@ -51,7 +51,9 @@ class _InputBarState extends State<InputBar> {
           Text(
             '${component.promptPrefix} ',
             style: TextStyle(
-              color: component.enabled ? component.theme.prompt : component.theme.status,
+              color: component.enabled
+                  ? component.theme.prompt
+                  : component.theme.status,
             ),
           ),
           Expanded(

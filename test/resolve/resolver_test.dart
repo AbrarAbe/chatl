@@ -25,23 +25,28 @@ void main() {
   group('MentionResolver (spec §The @ resolver layer)', () {
     test('with no resolvers, @ text passes through literally', () async {
       final resolver = MentionResolver(entries: const []);
-      final result = await resolver.resolve('@fetch https://x — is this a scam?');
+      final result = await resolver.resolve(
+        '@fetch https://x — is this a scam?',
+      );
 
       expect(result.blocks, isEmpty);
       expect(result.failures, isEmpty);
       expect(result.requestContent, '@fetch https://x — is this a scam?');
     });
 
-    test('unknown @tokens pass through even when other resolvers exist', () async {
-      final fake = _FakeResolver();
-      final resolver = MentionResolver(entries: [fake.entry]);
+    test(
+      'unknown @tokens pass through even when other resolvers exist',
+      () async {
+        final fake = _FakeResolver();
+        final resolver = MentionResolver(entries: [fake.entry]);
 
-      final result = await resolver.resolve('@other https://x');
+        final result = await resolver.resolve('@other https://x');
 
-      expect(fake.calls, isEmpty);
-      expect(result.blocks, isEmpty);
-      expect(result.requestContent, '@other https://x');
-    });
+        expect(fake.calls, isEmpty);
+        expect(result.blocks, isEmpty);
+        expect(result.requestContent, '@other https://x');
+      },
+    );
 
     test('email addresses are not mentions', () async {
       final fake = _FakeResolver();
@@ -53,22 +58,33 @@ void main() {
       expect(result.requestContent, 'mail me at a@fake.com please');
     });
 
-    test('a registered mention expands into a context block plus the question', () async {
-      final fake = _FakeResolver(result: 'extracted page text');
-      final resolver = MentionResolver(entries: [fake.entry]);
+    test(
+      'a registered mention expands into a context block plus the question',
+      () async {
+        final fake = _FakeResolver(result: 'extracted page text');
+        final resolver = MentionResolver(entries: [fake.entry]);
 
-      final result = await resolver.resolve('@fake https://example.com — is this a scam?');
+        final result = await resolver.resolve(
+          '@fake https://example.com — is this a scam?',
+        );
 
-      expect(fake.calls, ['https://example.com']);
-      expect(result.blocks, hasLength(1));
-      expect(result.blocks.single.source, 'fake:https://example.com');
-      expect(result.requestContent, contains('[CONTEXT source="fake:https://example.com"'));
-      expect(result.requestContent, contains('extracted page text'));
-      expect(result.requestContent, contains('[/CONTEXT]'));
-      expect(result.requestContent.trim().endsWith('Q: is this a scam?'), isTrue);
-      // the syntax itself never survives into the request
-      expect(result.requestContent.contains('@fake'), isFalse);
-    });
+        expect(fake.calls, ['https://example.com']);
+        expect(result.blocks, hasLength(1));
+        expect(result.blocks.single.source, 'fake:https://example.com');
+        expect(
+          result.requestContent,
+          contains('[CONTEXT source="fake:https://example.com"'),
+        );
+        expect(result.requestContent, contains('extracted page text'));
+        expect(result.requestContent, contains('[/CONTEXT]'));
+        expect(
+          result.requestContent.trim().endsWith('Q: is this a scam?'),
+          isTrue,
+        );
+        // the syntax itself never survives into the request
+        expect(result.requestContent.contains('@fake'), isFalse);
+      },
+    );
 
     test('argument-less resolvers do not swallow the next word', () async {
       final fake = _FakeResolver(takesArgument: false, result: '2026-09-27');
@@ -85,32 +101,41 @@ void main() {
       final second = ResolverEntry(
         name: 'second',
         takesArgument: true,
-        resolve: (argument) async => ContextBlock(source: 'second:$argument', body: 'TWO'),
+        resolve: (argument) async =>
+            ContextBlock(source: 'second:$argument', body: 'TWO'),
       );
       final resolver = MentionResolver(entries: [first.entry, second]);
 
-      final result = await resolver.resolve('@fake a @second b — compare these');
+      final result = await resolver.resolve(
+        '@fake a @second b — compare these',
+      );
 
       expect(result.blocks.map((b) => b.body).toList(), ['ONE', 'TWO']);
     });
 
-    test('a failing resolver produces a visible error block, not a drop', () async {
-      final broken = _FakeResolver(throws: true);
-      final good = ResolverEntry(
-        name: 'good',
-        takesArgument: false,
-        resolve: (_) async => const ContextBlock(source: 'good', body: 'OK'),
-      );
-      final resolver = MentionResolver(entries: [broken.entry, good]);
+    test(
+      'a failing resolver produces a visible error block, not a drop',
+      () async {
+        final broken = _FakeResolver(throws: true);
+        final good = ResolverEntry(
+          name: 'good',
+          takesArgument: false,
+          resolve: (_) async => const ContextBlock(source: 'good', body: 'OK'),
+        );
+        final resolver = MentionResolver(entries: [broken.entry, good]);
 
-      final result = await resolver.resolve('@fake x @good — status?');
+        final result = await resolver.resolve('@fake x @good — status?');
 
-      expect(result.failures, hasLength(1));
-      expect(result.failures.single.source, 'fake:x');
-      expect(result.requestContent, contains('[CONTEXT ERROR source="fake:x"'));
-      expect(result.requestContent, contains('backend down'));
-      expect(result.requestContent, contains('OK'));
-    });
+        expect(result.failures, hasLength(1));
+        expect(result.failures.single.source, 'fake:x');
+        expect(
+          result.requestContent,
+          contains('[CONTEXT ERROR source="fake:x"'),
+        );
+        expect(result.requestContent, contains('backend down'));
+        expect(result.requestContent, contains('OK'));
+      },
+    );
 
     test('resolution is deterministic for the same input', () async {
       final fake = _FakeResolver();

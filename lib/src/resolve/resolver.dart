@@ -24,7 +24,11 @@ class ResolveFailure {
 /// A registered resolver: one reserved `@` name (spec §Reserved names: exactly
 /// the registered set; unknown tokens always pass through literally).
 class ResolverEntry {
-  const ResolverEntry({required this.name, required this.resolve, this.takesArgument = false});
+  const ResolverEntry({
+    required this.name,
+    required this.resolve,
+    this.takesArgument = false,
+  });
 
   final String name;
 
@@ -37,7 +41,11 @@ class ResolverEntry {
 
 /// The outcome of resolving one input line.
 class ResolveResult {
-  const ResolveResult({required this.requestContent, required this.blocks, required this.failures});
+  const ResolveResult({
+    required this.requestContent,
+    required this.blocks,
+    required this.failures,
+  });
 
   /// What actually goes to the provider: rendered blocks followed by
   /// `Q: <leftover text>`. Never contains `@` syntax.
@@ -104,7 +112,11 @@ class MentionResolver {
 
     if (expansions.isEmpty) {
       // pure passthrough: byte-for-byte identical to the input
-      return ResolveResult(requestContent: input, blocks: const [], failures: const []);
+      return ResolveResult(
+        requestContent: input,
+        blocks: const [],
+        failures: const [],
+      );
     }
 
     leftovers.write(input.substring(cursor));
@@ -115,7 +127,9 @@ class MentionResolver {
     final failures = <ResolveFailure>[];
     for (final expansion in expansions) {
       if (expansion.failure != null) {
-        failures.add(ResolveFailure(source: expansion.source, message: expansion.failure!));
+        failures.add(
+          ResolveFailure(source: expansion.source, message: expansion.failure!),
+        );
         rendered.writeln(
           '[CONTEXT ERROR source="${expansion.source}"]${expansion.failure}[/CONTEXT]',
         );
@@ -137,8 +151,11 @@ class MentionResolver {
 
   /// Collapses whitespace and strips a leading separator dash left behind by
   /// `@fetch <url> — question` (spec §The `@` resolver layer example).
-  String _cleanup(String text) =>
-      text.replaceAll(RegExp(r'\s+'), ' ').trim().replaceFirst(RegExp(r'^[—–-]\s*'), '').trim();
+  String _cleanup(String text) => text
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim()
+      .replaceFirst(RegExp(r'^[—–-]\s*'), '')
+      .trim();
 }
 
 class _Expansion {

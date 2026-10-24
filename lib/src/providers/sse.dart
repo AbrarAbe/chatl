@@ -31,7 +31,9 @@ class SseParser extends StreamTransformerBase<String, String> {
       buffer.clear();
       // SSE: multiple data: lines join with '\n'; strip that joiner from the
       // trailing edge only if present.
-      controller!.add(text.endsWith('\n') ? text.substring(0, text.length - 1) : text);
+      controller!.add(
+        text.endsWith('\n') ? text.substring(0, text.length - 1) : text,
+      );
     }
 
     controller = StreamController<String>(

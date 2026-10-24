@@ -6,7 +6,11 @@ import '../chat_scroll_controller.dart';
 /// Flat current-branch listing for `/history` (spec Decisions: flat, not a
 /// tree).
 class HistoryOverlay extends StatelessComponent {
-  const HistoryOverlay({super.key, required this.entries, required this.onClose});
+  const HistoryOverlay({
+    super.key,
+    required this.entries,
+    required this.onClose,
+  });
 
   final List<HistoryEntry> entries;
   final void Function() onClose;
@@ -32,7 +36,10 @@ class HistoryOverlay extends StatelessComponent {
           children: [
             Text(
               'history (${entries.length} turns) — esc to close',
-              style: const TextStyle(color: Colors.brightWhite, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.brightWhite,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Expanded(
               child: ListView.builder(
@@ -44,7 +51,9 @@ class HistoryOverlay extends StatelessComponent {
                   final isUser = entry.role == 'user';
                   return Text(
                     '${index + 1}. ${isUser ? '❯' : '◆'} ${entry.preview}',
-                    style: TextStyle(color: isUser ? Colors.green : Colors.white),
+                    style: TextStyle(
+                      color: isUser ? Colors.green : Colors.white,
+                    ),
                   );
                 },
               ),

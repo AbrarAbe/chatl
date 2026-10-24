@@ -168,10 +168,13 @@ class _ChatScreenState extends State<ChatScreen> {
       _controller.addNotice('/copy: no reply to copy yet');
       return;
     }
-    final copy = component.copyToClipboard ?? (text) => ClipboardManager.copy(text);
+    final copy =
+        component.copyToClipboard ?? (text) => ClipboardManager.copy(text);
     final ok = copy(last.content);
     _controller.addNotice(
-      ok ? '/copy: ${last.content.length} chars copied' : '/copy: clipboard unavailable',
+      ok
+          ? '/copy: ${last.content.length} chars copied'
+          : '/copy: clipboard unavailable',
     );
   }
 
@@ -180,7 +183,9 @@ class _ChatScreenState extends State<ChatScreen> {
         .renameSession(title)
         .then(
           (_) => _controller.addNotice('/rename: session is now "$title"'),
-          onError: (_) => _controller.addNotice('/rename: this session is not persisted yet'),
+          onError: (_) => _controller.addNotice(
+            '/rename: this session is not persisted yet',
+          ),
         );
   }
 
@@ -188,7 +193,9 @@ class _ChatScreenState extends State<ChatScreen> {
   /// reply (fork-on-edit, spec §MVP Scope).
   void _editLastUserTurn(String newText) {
     if (_controller.streaming) return;
-    final index = _controller.transcript.lastIndexWhere((t) => t.role == 'user');
+    final index = _controller.transcript.lastIndexWhere(
+      (t) => t.role == 'user',
+    );
     if (index < 0) return;
     final turn = _controller.transcript[index];
     if (turn.id == null) {
@@ -201,7 +208,9 @@ class _ChatScreenState extends State<ChatScreen> {
   void _newSession() {
     final factory = component.newSession;
     if (factory == null) {
-      _controller.addNotice('/new: restart with `chatl` for a fresh session (in-memory run)');
+      _controller.addNotice(
+        '/new: restart with `chatl` for a fresh session (in-memory run)',
+      );
       return;
     }
     factory().then(

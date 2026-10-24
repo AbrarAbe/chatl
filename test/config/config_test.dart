@@ -15,8 +15,14 @@ void main() {
     await tmp.delete(recursive: true);
   });
 
-  Future<Config> loadSource(String source, {Map<String, String> env = const {}}) async =>
-      Config.load(path: p.join(tmp.path, 'config.yaml'), sourceOverride: source, environment: env);
+  Future<Config> loadSource(
+    String source, {
+    Map<String, String> env = const {},
+  }) async => Config.load(
+    path: p.join(tmp.path, 'config.yaml'),
+    sourceOverride: source,
+    environment: env,
+  );
 
   group('Config.load', () {
     test('missing file → defaults with warning', () async {
@@ -61,7 +67,10 @@ commands:
       expect(config.ui.theme, 'light');
       expect(config.ui.promptPrefix, '»');
       expect(config.ui.markdown, isFalse);
-      expect(config.commands.singleWhere((c) => c.name == 'recap').prompt, contains('5 bullets'));
+      expect(
+        config.commands.singleWhere((c) => c.name == 'recap').prompt,
+        contains('5 bullets'),
+      );
     });
 
     test(r'$VAR and ${VAR} env interpolation', () async {
@@ -97,7 +106,13 @@ models:
     test('invalid YAML fails with line information', () async {
       await expectLater(
         loadSource('models:\n  default: [unclosed\n'),
-        throwsA(isA<ConfigException>().having((e) => e.message, 'message', contains('line '))),
+        throwsA(
+          isA<ConfigException>().having(
+            (e) => e.message,
+            'message',
+            contains('line '),
+          ),
+        ),
       );
     });
 
@@ -126,7 +141,11 @@ futuristic_feature: true
       await expectLater(
         loadSource('ui:\n  markdown: yes please\n'),
         throwsA(
-          isA<ConfigException>().having((e) => e.message, 'message', contains('ui.markdown')),
+          isA<ConfigException>().having(
+            (e) => e.message,
+            'message',
+            contains('ui.markdown'),
+          ),
         ),
       );
     });
@@ -134,33 +153,48 @@ futuristic_feature: true
     test('command without name fails', () async {
       await expectLater(
         loadSource('commands:\n  - prompt: hello\n'),
-        throwsA(isA<ConfigException>().having((e) => e.message, 'message', contains('name'))),
+        throwsA(
+          isA<ConfigException>().having(
+            (e) => e.message,
+            'message',
+            contains('name'),
+          ),
+        ),
       );
     });
 
-    test('unknown nested model key warns (typo guard: api-key vs api_key)', () async {
-      final config = await loadSource('''
+    test(
+      'unknown nested model key warns (typo guard: api-key vs api_key)',
+      () async {
+        final config = await loadSource('''
 models:
   default:
     model: gpt-4o
     api-key: sk-nope
 ''');
 
-      expect(config.warnings.any((w) => w.contains('api-key')), isTrue);
-      // ignored, not applied: no auth header will be built from it
-      expect(config.models['default']!.apiKey, isNull);
-    });
+        expect(config.warnings.any((w) => w.contains('api-key')), isTrue);
+        // ignored, not applied: no auth header will be built from it
+        expect(config.models['default']!.apiKey, isNull);
+      },
+    );
 
-    test('map-form profile without base_url warns about OpenAI default', () async {
-      final config = await loadSource('''
+    test(
+      'map-form profile without base_url warns about OpenAI default',
+      () async {
+        final config = await loadSource('''
 models:
   default:
     model: some-model-id
     api_key: sk-abc
 ''');
 
-      expect(config.models['default']!.baseUrl, isNull);
-      expect(config.warnings.any((w) => w.contains('api.openai.com')), isTrue);
-    });
+        expect(config.models['default']!.baseUrl, isNull);
+        expect(
+          config.warnings.any((w) => w.contains('api.openai.com')),
+          isTrue,
+        );
+      },
+    );
   });
 }

@@ -58,7 +58,10 @@ class _StreamingMarkdownViewState extends State<StreamingMarkdownView> {
       children: [
         for (var block = 0; block < _cache.completedLines.length; block++)
           for (var line = 0; line < _cache.completedLines[block].length; line++)
-            _line(_cache.completedLines[block][line], key: ValueKey('frozen-$block-$line')),
+            _line(
+              _cache.completedLines[block][line],
+              key: ValueKey('frozen-$block-$line'),
+            ),
         for (var line = 0; line < _cache.openLines.length; line++)
           _line(_cache.openLines[line], key: ValueKey('open-$line')),
       ],

@@ -43,7 +43,9 @@ ChatlArgs parseArgs(List<String> argv) {
   }
 
   if (continueLatest && sessionId != null) {
-    throw UsageException('--continue and --session are mutually exclusive.\n$usage');
+    throw UsageException(
+      '--continue and --session are mutually exclusive.\n$usage',
+    );
   }
 
   return ChatlArgs(continueLatest: continueLatest, sessionId: sessionId);

@@ -104,19 +104,26 @@ class ChatlTheme {
   };
 
   /// Style for a plain (non-markdown) transcript line.
-  TextStyle styleForRole({required bool isUser, required bool isNotice, required bool isError}) =>
-      TextStyle(
-        color: isError
-            ? error
-            : isNotice
-            ? notice
-            : isUser
-            ? paragraph
-            : paragraph,
-      );
+  TextStyle styleForRole({
+    required bool isUser,
+    required bool isNotice,
+    required bool isError,
+  }) => TextStyle(
+    color: isError
+        ? error
+        : isNotice
+        ? notice
+        : isUser
+        ? paragraph
+        : paragraph,
+  );
 
   /// Accent used by the `❯`/`◆`/`ℹ`/`✗` prefix for a turn.
-  Color accentFor({required bool isUser, required bool isNotice, required bool isError}) => isError
+  Color accentFor({
+    required bool isUser,
+    required bool isNotice,
+    required bool isError,
+  }) => isError
       ? error
       : isNotice
       ? notice

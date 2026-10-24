@@ -20,7 +20,10 @@ void main() {
         const [ChatTextEvent('a1'), ChatDoneEvent()],
         const [ChatTextEvent('a2'), ChatDoneEvent()],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       await controller.send('q1');
       controller.addNotice('context: whatever');
@@ -41,15 +44,23 @@ void main() {
         const [ChatErrorEvent('HTTP 400: bad role')],
         const [ChatTextEvent('ok'), ChatDoneEvent()],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       await controller.send('q1');
       await controller.send('q2');
 
-      final contents = provider.requests[1].messages.map((m) => m.content).toList();
+      final contents = provider.requests[1].messages
+          .map((m) => m.content)
+          .toList();
       expect(contents, ['Terse.', 'q1', 'q2']);
       // the errored assistant turn is skipped, so only user/system remain
-      expect(provider.requests[1].messages.map((m) => m.role).toSet(), {'system', 'user'});
+      expect(provider.requests[1].messages.map((m) => m.role).toSet(), {
+        'system',
+        'user',
+      });
     });
 
     test('regenerate after edit also filters non-conversation turns', () async {
@@ -57,13 +68,18 @@ void main() {
         const [ChatTextEvent('a1'), ChatDoneEvent()],
         const [ChatTextEvent('a2'), ChatDoneEvent()],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       await controller.send('q1');
       controller.addNotice('a notice');
       await controller.regenerate();
 
-      final contents = provider.requests[1].messages.map((m) => m.content).toList();
+      final contents = provider.requests[1].messages
+          .map((m) => m.content)
+          .toList();
       expect(contents, ['Terse.', 'q1', 'a1']);
     });
   });

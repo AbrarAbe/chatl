@@ -9,7 +9,11 @@ void main() {
       final lines = renderMarkdown('# One\n\n## Two\n\n### Three');
 
       expect(plain(lines), 'One\nTwo\nThree');
-      expect(lines.map((l) => l.style).toList(), [LineStyle.h1, LineStyle.h2, LineStyle.h3]);
+      expect(lines.map((l) => l.style).toList(), [
+        LineStyle.h1,
+        LineStyle.h2,
+        LineStyle.h3,
+      ]);
     });
 
     test('emphasis markers are stripped, text preserved', () {
@@ -21,7 +25,10 @@ void main() {
     test('bullet lists become bullet lines', () {
       final lines = renderMarkdown('- first\n- second');
       expect(plain(lines), '• first\n• second');
-      expect(lines.map((l) => l.style).toList(), [LineStyle.bullet, LineStyle.bullet]);
+      expect(lines.map((l) => l.style).toList(), [
+        LineStyle.bullet,
+        LineStyle.bullet,
+      ]);
     });
 
     test('ordered lists keep their numbering', () {
@@ -52,7 +59,9 @@ void main() {
       final lines = renderMarkdown('| a | b |\n|---');
       expect(plain(lines), contains('a | b'));
       expect(
-        lines.any((l) => l.style == LineStyle.paragraph || l.style == LineStyle.table),
+        lines.any(
+          (l) => l.style == LineStyle.paragraph || l.style == LineStyle.table,
+        ),
         isTrue,
       );
     });

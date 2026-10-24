@@ -8,7 +8,12 @@ import '../state/session_store.dart';
 
 /// One entry in the visible conversation.
 class Turn {
-  Turn({required this.role, required this.content, this.error = false, this.id});
+  Turn({
+    required this.role,
+    required this.content,
+    this.error = false,
+    this.id,
+  });
 
   final String role; // 'user' | 'assistant'
   String content;
@@ -119,7 +124,9 @@ class SessionController {
     final session = await store.getSession(_session!.id);
     transcript.clear();
     for (final message in await store.activeBranch(session)) {
-      transcript.add(Turn(role: message.role, content: message.content, id: message.id));
+      transcript.add(
+        Turn(role: message.role, content: message.content, id: message.id),
+      );
     }
   }
 
@@ -157,7 +164,9 @@ class SessionController {
     for (final turn in transcript)
       HistoryEntry(
         role: turn.role,
-        preview: turn.content.length > 60 ? '${turn.content.substring(0, 60)}…' : turn.content,
+        preview: turn.content.length > 60
+            ? '${turn.content.substring(0, 60)}…'
+            : turn.content,
       ),
   ];
 
@@ -178,7 +187,11 @@ class SessionController {
       throw ArgumentError.value(turnId, 'turnId', 'unknown turn');
     }
     if (transcript[index].role != 'user') {
-      throw ArgumentError.value(turnId, 'turnId', 'only user turns are editable');
+      throw ArgumentError.value(
+        turnId,
+        'turnId',
+        'only user turns are editable',
+      );
     }
 
     final fork = await store.forkAt(session.id, turnId, text);
@@ -309,7 +322,8 @@ class SessionController {
     // layer). The resolved form rides on the turn so later requests never
     // leak the syntax either.
     final resolution = await _resolver.resolve(text);
-    transcript[transcript.length - 2].requestContent = resolution.requestContent;
+    transcript[transcript.length - 2].requestContent =
+        resolution.requestContent;
     final request = StreamRequest(
       model: profile.model,
       messages: _conversationMessages(trailing: 1),
@@ -363,13 +377,21 @@ class SessionController {
   List<ChatMessage> _conversationMessages({int trailing = 0}) {
     final end = transcript.length - trailing;
     final messages = <ChatMessage>[
-      ChatMessage(role: 'system', content: _config.personas[_personaName] ?? ''),
+      ChatMessage(
+        role: 'system',
+        content: _config.personas[_personaName] ?? '',
+      ),
     ];
     for (var i = 0; i < end; i++) {
       final turn = transcript[i];
       if (turn.role != 'user' && turn.role != 'assistant') continue;
       if (turn.error) continue;
-      messages.add(ChatMessage(role: turn.role, content: turn.requestContent ?? turn.content));
+      messages.add(
+        ChatMessage(
+          role: turn.role,
+          content: turn.requestContent ?? turn.content,
+        ),
+      );
     }
     return messages;
   }
@@ -378,7 +400,11 @@ class SessionController {
     final store = _store;
     final session = _session;
     if (store == null || session == null) return null;
-    final message = await store.appendMessage(sessionId: session.id, role: 'user', content: text);
+    final message = await store.appendMessage(
+      sessionId: session.id,
+      role: 'user',
+      content: text,
+    );
     if (session.title.isEmpty || session.title == '(untitled)') {
       final title = text.length <= 60 ? text : text.substring(0, 60);
       await store.updateTitle(session.id, title);
@@ -390,7 +416,11 @@ class SessionController {
   void _assignTurnId(int index, Message? message) {
     if (message == null || index < 0 || index >= transcript.length) return;
     final turn = transcript[index];
-    transcript[index] = Turn(role: turn.role, content: turn.content, id: message.id);
+    transcript[index] = Turn(
+      role: turn.role,
+      content: turn.content,
+      id: message.id,
+    );
   }
 
   Future<Message?> _persistAssistantTurn(

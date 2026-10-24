@@ -10,8 +10,11 @@ import 'sse.dart';
 /// LM Studio, vLLM, llama.cpp, Groq, Together, OpenRouter, DeepSeek, Mistral
 /// — spec §Seams).
 final class OpenAiCompatProvider implements Provider {
-  OpenAiCompatProvider({required this.baseUrl, this.apiKey, http.Client? client})
-    : _client = client ?? http.Client();
+  OpenAiCompatProvider({
+    required this.baseUrl,
+    this.apiKey,
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
   final String baseUrl;
 
@@ -61,7 +64,9 @@ final class OpenAiCompatProvider implements Provider {
       int? promptTokens;
       int? completionTokens;
       await for (final payload
-          in response.stream.transform(const SseDecoder()).transform(const SseParser())) {
+          in response.stream
+              .transform(const SseDecoder())
+              .transform(const SseParser())) {
         if (payload == '[DONE]') break;
         try {
           final json = jsonDecode(payload) as Map<String, dynamic>;
@@ -76,14 +81,20 @@ final class OpenAiCompatProvider implements Provider {
           final usage = json['usage'];
           if (usage is Map<String, dynamic>) {
             promptTokens = usage['prompt_tokens'] as int? ?? promptTokens;
-            completionTokens = usage['completion_tokens'] as int? ?? completionTokens;
+            completionTokens =
+                usage['completion_tokens'] as int? ?? completionTokens;
           }
         } catch (e) {
           controller.add(ChatErrorEvent('malformed SSE payload', cause: e));
         }
       }
       controller
-        ..add(ChatDoneEvent(promptTokens: promptTokens, completionTokens: completionTokens))
+        ..add(
+          ChatDoneEvent(
+            promptTokens: promptTokens,
+            completionTokens: completionTokens,
+          ),
+        )
         ..close();
     }();
 

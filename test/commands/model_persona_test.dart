@@ -32,13 +32,25 @@ void main() {
     });
 
     test('payload names the profile to switch to', () {
-      expect((registry.resolve('/model cheap') as CommandAction).payload, 'cheap');
-      expect((registry.resolve('/persona review') as CommandAction).payload, 'review');
+      expect(
+        (registry.resolve('/model cheap') as CommandAction).payload,
+        'cheap',
+      );
+      expect(
+        (registry.resolve('/persona review') as CommandAction).payload,
+        'review',
+      );
     });
 
     test('extra whitespace is trimmed, inner spaces are kept', () {
-      expect((registry.resolve('/model   cheap  ') as CommandAction).payload, 'cheap');
-      expect((registry.resolve('/persona a b') as CommandAction).payload, 'a b');
+      expect(
+        (registry.resolve('/model   cheap  ') as CommandAction).payload,
+        'cheap',
+      );
+      expect(
+        (registry.resolve('/persona a b') as CommandAction).payload,
+        'a b',
+      );
     });
   });
 }

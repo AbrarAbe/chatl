@@ -1,7 +1,21 @@
 import 'package:markdown/markdown.dart' as md;
 
 /// How a rendered line should be styled by the terminal widget.
-enum LineStyle { h1, h2, h3, h4, h5, h6, paragraph, bullet, ordered, codeBlock, quote, table, rule }
+enum LineStyle {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  paragraph,
+  bullet,
+  ordered,
+  codeBlock,
+  quote,
+  table,
+  rule,
+}
 
 /// One display line: text plus the style the widget maps to a terminal look.
 class RenderedLine {
@@ -21,7 +35,10 @@ class RenderedLine {
 /// block and once per flush for the open block (ADR 0003), so it stays cheap
 /// and allocation-light.
 List<RenderedLine> renderMarkdown(String source) {
-  final document = md.Document(extensionSet: md.ExtensionSet.gitHubFlavored, encodeHtml: false);
+  final document = md.Document(
+    extensionSet: md.ExtensionSet.gitHubFlavored,
+    encodeHtml: false,
+  );
   final lines = <RenderedLine>[];
   for (final node in document.parse(source)) {
     _renderBlock(node, lines);
@@ -72,7 +89,9 @@ void _renderBlock(md.Node node, List<RenderedLine> out) {
       }
     case 'table':
       for (final row in _rows(node)) {
-        final cells = _kids(row).map((cell) => cell.textContent.trim()).toList();
+        final cells = _kids(row)
+            .map((cell) => cell.textContent.trim())
+            .toList();
         out.add(RenderedLine(cells.join(' | '), LineStyle.table));
       }
     case 'hr':

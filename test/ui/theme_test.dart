@@ -19,7 +19,10 @@ void main() {
     test('the two palettes genuinely differ', () {
       expect(ChatlTheme.dark.paragraph, isNot(ChatlTheme.light.paragraph));
       expect(ChatlTheme.dark.code, isNot(ChatlTheme.light.code));
-      expect(ChatlTheme.dark.assistantAccent, isNot(ChatlTheme.light.assistantAccent));
+      expect(
+        ChatlTheme.dark.assistantAccent,
+        isNot(ChatlTheme.light.assistantAccent),
+      );
       expect(ChatlTheme.dark.status, isNot(ChatlTheme.light.status));
     });
 
@@ -31,8 +34,14 @@ void main() {
       expect(lightH1.fontWeight, FontWeight.bold);
       expect(darkH1.color, isNot(lightH1.color));
 
-      expect(ChatlTheme.dark.styleFor(LineStyle.codeBlock).color, ChatlTheme.dark.code);
-      expect(ChatlTheme.light.styleFor(LineStyle.codeBlock).color, ChatlTheme.light.code);
+      expect(
+        ChatlTheme.dark.styleFor(LineStyle.codeBlock).color,
+        ChatlTheme.dark.code,
+      );
+      expect(
+        ChatlTheme.light.styleFor(LineStyle.codeBlock).color,
+        ChatlTheme.light.code,
+      );
     });
 
     test('role accents distinguish user, assistant, notice and error', () {

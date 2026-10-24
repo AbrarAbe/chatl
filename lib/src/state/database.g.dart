@@ -1103,28 +1103,26 @@ abstract class _$ChatlDatabase extends GeneratedDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
-typedef $$SessionsTableCreateCompanionBuilder =
-    SessionsCompanion Function({
-      required String id,
-      required String title,
-      required String model,
-      required String persona,
-      Value<String?> activeHeadId,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      Value<int> rowid,
-    });
-typedef $$SessionsTableUpdateCompanionBuilder =
-    SessionsCompanion Function({
-      Value<String> id,
-      Value<String> title,
-      Value<String> model,
-      Value<String> persona,
-      Value<String?> activeHeadId,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
+typedef $$SessionsTableCreateCompanionBuilder = SessionsCompanion Function({
+  required String id,
+  required String title,
+  required String model,
+  required String persona,
+  Value<String?> activeHeadId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$SessionsTableUpdateCompanionBuilder = SessionsCompanion Function({
+  Value<String> id,
+  Value<String> title,
+  Value<String> model,
+  Value<String> persona,
+  Value<String?> activeHeadId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
 
 class $$SessionsTableFilterComposer
     extends Composer<_$ChatlDatabase, $SessionsTable> {
@@ -1337,34 +1335,32 @@ typedef $$SessionsTableProcessedTableManager =
       Session,
       PrefetchHooks Function()
     >;
-typedef $$MessagesTableCreateCompanionBuilder =
-    MessagesCompanion Function({
-      required String id,
-      required String sessionId,
-      Value<String?> parentId,
-      required String role,
-      required String content,
-      Value<String?> model,
-      Value<int?> promptTokens,
-      Value<int?> completionTokens,
-      Value<String?> sources,
-      required DateTime createdAt,
-      Value<int> rowid,
-    });
-typedef $$MessagesTableUpdateCompanionBuilder =
-    MessagesCompanion Function({
-      Value<String> id,
-      Value<String> sessionId,
-      Value<String?> parentId,
-      Value<String> role,
-      Value<String> content,
-      Value<String?> model,
-      Value<int?> promptTokens,
-      Value<int?> completionTokens,
-      Value<String?> sources,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
+typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
+  required String id,
+  required String sessionId,
+  Value<String?> parentId,
+  required String role,
+  required String content,
+  Value<String?> model,
+  Value<int?> promptTokens,
+  Value<int?> completionTokens,
+  Value<String?> sources,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
+  Value<String> id,
+  Value<String> sessionId,
+  Value<String?> parentId,
+  Value<String> role,
+  Value<String> content,
+  Value<String?> model,
+  Value<int?> promptTokens,
+  Value<int?> completionTokens,
+  Value<String?> sources,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
 
 class $$MessagesTableFilterComposer
     extends Composer<_$ChatlDatabase, $MessagesTable> {

@@ -23,18 +23,19 @@ List<List<int>> _split(List<int> bytes, List<int> sizes) {
 
 void main() {
   group('SseParser', () {
-    Stream<String> feed(List<String> chunks) =>
-        Stream<List<int>>.fromIterable(chunks.map((c) => utf8.encode(c) as List<int>))
-            .transform(const SseDecoder())
-            .transform(const SseParser());
+    Stream<String> feed(List<String> chunks) => Stream<List<int>>.fromIterable(
+      chunks.map((c) => utf8.encode(c) as List<int>),
+    ).transform(const SseDecoder()).transform(const SseParser());
 
     test('parses single-line data events', () async {
-      final events = await feed(['data: hello\n\n', 'data: world\n\n']).toList();
+      final events = await feed(['data: hello\n\n', 'data: world\n\n'])
+          .toList();
       expect(events, ['hello', 'world']);
     });
 
     test('handles chunks split mid-line', () async {
-      final events = await feed(['data: hel', 'lo\n', '\nda', 'ta: done\n\n']).toList();
+      final events = await feed(['data: hel', 'lo\n', '\nda', 'ta: done\n\n'])
+          .toList();
       expect(events, ['hello', 'done']);
     });
 
@@ -44,7 +45,11 @@ void main() {
     });
 
     test('ignores comment lines (keepalives)', () async {
-      final events = await feed([': OPENAI keepalive\n', '\n', 'data: real\n\n']).toList();
+      final events = await feed([
+        ': OPENAI keepalive\n',
+        '\n',
+        'data: real\n\n',
+      ]).toList();
       expect(events, ['real']);
     });
 
@@ -96,17 +101,24 @@ void main() {
           )
           .toList();
 
-      expect(events.whereType<ChatTextEvent>().map((e) => e.text).toList(), ['Hel', 'lo']);
+      expect(events.whereType<ChatTextEvent>().map((e) => e.text).toList(), [
+        'Hel',
+        'lo',
+      ]);
       expect(events.last, isA<ChatDoneEvent>());
     });
 
     test('emits error event on non-200', () async {
       final provider = OpenAiCompatProvider(
         baseUrl: 'http://x.test/v1',
-        client: MockClient.streaming((_, _) => Future.value(streamBody('nope', status: 500))),
+        client: MockClient.streaming(
+          (_, _) => Future.value(streamBody('nope', status: 500)),
+        ),
       );
 
-      final events = await provider.chat(const StreamRequest(model: 'm', messages: [])).toList();
+      final events = await provider
+          .chat(const StreamRequest(model: 'm', messages: []))
+          .toList();
 
       expect(events.single, isA<ChatErrorEvent>());
       expect((events.single as ChatErrorEvent).message, contains('500'));
@@ -124,7 +136,9 @@ void main() {
         client: MockClient.streaming((_, _) => Future.value(streamBody(body))),
       );
 
-      final events = await provider.chat(const StreamRequest(model: 'm', messages: [])).toList();
+      final events = await provider
+          .chat(const StreamRequest(model: 'm', messages: []))
+          .toList();
 
       final done = events.whereType<ChatDoneEvent>().single;
       expect(done.promptTokens, 3);
@@ -134,9 +148,13 @@ void main() {
     test('transport failure yields error event, not throw', () async {
       final provider = OpenAiCompatProvider(
         baseUrl: 'http://x.test/v1',
-        client: MockClient.streaming((_, _) => throw http.ClientException('boom')),
+        client: MockClient.streaming(
+          (_, _) => throw http.ClientException('boom'),
+        ),
       );
-      final events = await provider.chat(const StreamRequest(model: 'm', messages: [])).toList();
+      final events = await provider
+          .chat(const StreamRequest(model: 'm', messages: []))
+          .toList();
       expect(events.single, isA<ChatErrorEvent>());
     });
   });
@@ -148,7 +166,9 @@ void main() {
         ChatTextEvent('b'),
         ChatDoneEvent(),
       ]);
-      final events = await provider.chat(const StreamRequest(model: 'm', messages: [])).toList();
+      final events = await provider
+          .chat(const StreamRequest(model: 'm', messages: []))
+          .toList();
       expect(events.map((e) => e.runtimeType).toList(), [
         ChatTextEvent,
         ChatTextEvent,

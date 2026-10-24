@@ -15,7 +15,11 @@ class ChatMessage {
 
 /// One streaming chat completion request.
 class StreamRequest {
-  const StreamRequest({required this.model, required this.messages, this.maxTokens});
+  const StreamRequest({
+    required this.model,
+    required this.messages,
+    this.maxTokens,
+  });
 
   final String model;
   final List<ChatMessage> messages;
