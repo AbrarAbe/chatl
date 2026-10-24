@@ -26,7 +26,16 @@ section.
 - **Release channel:** CI builds and uploads; **release notes and the version bump/tag
   come from the maintainer's release skill** — CI must never draft prose.
 
-- [ ] **Task 0.1: CI workflow (analyze, format, test)**
+- [x] **Task 0.1: CI workflow (analyze, format, test)** — DONE on
+      `chore/release-engineering`. `.github/workflows/ci.yml`: push-to-main + PRs,
+      matrix `ubuntu-latest`/`windows-latest`, Dart stable, pub cache, and the four
+      Definition-of-done gates (format check and `dart analyze --fatal-infos`
+      included). Format gate forced a repo-wide `dart format` sweep (45 files,
+      mechanical) — the maintainer's editor was not formatting on save; **if
+      format-on-save is reconfigured to a different style the CI gate will fail, so
+      align the editor or drop that step.** Local parity verified: `pub get`,
+      format check (0 changed), `analyze --fatal-infos` clean, 145 tests pass; workflow
+      YAML parses with the expected matrix and steps.
   - **Acceptance:** `.github/workflows/ci.yml` runs on push to `main` and on PRs; matrix
     `ubuntu-latest` + `windows-latest` on Dart stable; steps are exactly the Definition of
     done gates: `dart pub get`, `dart format --output=none --set-exit-if-changed .`,
