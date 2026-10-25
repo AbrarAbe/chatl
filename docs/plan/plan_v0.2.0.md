@@ -47,7 +47,14 @@ section.
   - **Scope:** M · bundle branch · test strategy: none (config); verification is command
     parity + YAML parse.
 
-- [ ] **Task 0.2: Version plumbing (`chatl --version`)**
+- [x] **Task 0.2: Version plumbing (`chatl --version`)** — DONE on
+      `chore/release-engineering`. `lib/src/version.dart` reads
+      `String.fromEnvironment('CHATL_VERSION', defaultValue: 'dev')`; `--version`
+      prints `chatl <version>`; `tool/check_version.dart` guards tag↔pubspec (leading
+      `v` optional, `+build` metadata ignored, non-versions rejected). Verified for real:
+      compiled with `-DCHATL_VERSION=0.1.0` → prints `chatl 0.1.0`; `dart run` → `chatl
+      dev`; guard exits 0 on `v0.1.0`, 1 on `v9.9.9` and on `nightly`. 152 tests pass,
+      analyze `--fatal-infos` clean.
   - **Acceptance:** `pubspec.yaml` stays the single source of truth; the binary carries the
     version via `--define=CHATL_VERSION=<pubspec version>` read by
     `const String.fromEnvironment('CHATL_VERSION', defaultValue: 'dev')`; `chatl --version`
@@ -57,7 +64,7 @@ section.
   - **Verify:** `dart test test/cli/ test/tool/`.
   - **Files:** `lib/src/version.dart`, `lib/src/cli/args.dart`, `bin/chatl.dart`,
     `tool/check_version.dart`, tests.
-  - **Scope:** S · bundle · TDD (`dart-add-unit-test`).
+  - **Scope:** S · bundle · TDD (`dart-add-unit-test`). *(done)*
 
 - [ ] **Task 0.3: Release packaging (`tool/package_release.dart`)**
   - **Acceptance:** running it produces `dist/chatl-<version>-<platform>.zip` containing the

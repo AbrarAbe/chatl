@@ -42,5 +42,21 @@ void main() {
     test('--session without value is rejected', () {
       expect(() => parseArgs(['--session']), throwsA(isA<UsageException>()));
     });
+
+    test('--version is parsed on its own', () {
+      expect(parseArgs(['--version']).showVersion, isTrue);
+      expect(parseArgs([]).showVersion, isFalse);
+    });
+
+    test('--version cannot be combined with session flags', () {
+      expect(
+        () => parseArgs(['--version', '--continue']),
+        throwsA(isA<UsageException>()),
+      );
+      expect(
+        () => parseArgs(['--version', '--session', 'x']),
+        throwsA(isA<UsageException>()),
+      );
+    });
   });
 }

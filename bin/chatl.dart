@@ -5,6 +5,7 @@ import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/state/database.dart';
 import 'package:chatl/src/state/session_store.dart';
+import 'package:chatl/src/version.dart';
 import 'package:chatl/src/ui/app.dart';
 import 'package:nocterm/nocterm.dart';
 import 'package:path/path.dart' as p;
@@ -16,6 +17,11 @@ Future<void> main(List<String> argv) async {
   } on UsageException catch (e) {
     stderr.writeln(e.message);
     exit(64); // EX_USAGE
+  }
+
+  if (args.showVersion) {
+    stdout.writeln('chatl $chatlVersion');
+    return;
   }
 
   final config = await Config.load();
