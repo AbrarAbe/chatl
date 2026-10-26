@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # chatl ships for these two platforms (spec §Tech Stack).
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: windows-latest
+            platform: windows-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Verify tag matches pubspec version
+        run: dart run tool/check_version.dart --tag ${{ github.ref_name }}
+
+      - name: Download Windows sqlite3.dll
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: |
+          # Official sqlite.org artifact for Windows x64.
+          Invoke-WebRequest -Uri "https://www.sqlite.org/2024/sqlite-dll-win64-x64-3450100.zip" -OutFile sqlite-dll-win64.zip
+          Expand-Archive -Path sqlite-dll-win64.zip -DestinationPath .
+          Get-Item sqlite3.dll
+
+      - name: Package release
+        run: dart run tool/package_release.dart --version ${{ github.ref_name }} --platform ${{ matrix.platform }} --sqlite-src sqlite3.dll
+
+      - name: Create release and upload assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" dist/* --verify-tag --clobber
