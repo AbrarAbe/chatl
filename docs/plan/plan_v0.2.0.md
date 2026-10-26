@@ -89,7 +89,12 @@ section.
     run above. **Windows artifact is built by CI (Task 0.4), not locally** — the local run
     is the Linux proof. *(done)*
 
-- [ ] **Task 0.4: Release workflow (tag-triggered)**
+- [x] **Task 0.4: Release workflow (tag-triggered)** — DONE on
+      `chore/release-engineering`. `.github/workflows/release.yml`: on every `v*` tag,
+      verify tag vs pubspec via tool/check_version.dart, matrix build both platforms
+      via tool/package_release.dart (Windows sqlite3.dll downloaded from sqlite.org),
+      create the GitHub Release with gh --verify-tag --clobber for idempotent re-runs.
+      YAML parsed locally; all 161 tests pass; analyze clean; format gate green.
   - **Acceptance:** `.github/workflows/release.yml` triggers on `v*` tags; first step runs
     `tool/check_version.dart --tag <tag>` so a tag/pubspec mismatch fails fast; matrix builds
     both platforms, uploads the zips + `SHA256SUMS` to the GitHub Release for that tag
