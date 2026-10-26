@@ -5,6 +5,7 @@ import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/state/database.dart';
 import 'package:chatl/src/state/session_store.dart';
+import 'package:chatl/src/state/sqlite_loader.dart';
 import 'package:chatl/src/version.dart';
 import 'package:chatl/src/ui/app.dart';
 import 'package:nocterm/nocterm.dart';
@@ -23,6 +24,10 @@ Future<void> main(List<String> argv) async {
     stdout.writeln('chatl $chatlVersion');
     return;
   }
+
+  // Prefer the sqlite3 library shipped beside the binary (Linux does not
+  // search the executable's directory; Windows does).
+  useBundledSqlite();
 
   final config = await Config.load();
   for (final warning in config.warnings) {

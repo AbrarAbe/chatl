@@ -66,7 +66,17 @@ section.
     `tool/check_version.dart`, tests.
   - **Scope:** S · bundle · TDD (`dart-add-unit-test`). *(done)*
 
-- [ ] **Task 0.3: Release packaging (`tool/package_release.dart`)**
+- [x] **Task 0.3: Release packaging (`tool/package_release.dart`)** — DONE on
+      `chore/release-engineering`. `tool/package_release.dart` compiles with the injected
+      version, lays out binary + sqlite3 + README, zips and appends to `dist/SHA256SUMS`
+      (via `package:crypto`, which nocterm/analyzer already pull in transitively; dev-only);
+      `lib/src/state/sqlite_loader.dart` points `package:sqlite3` at a bundled
+      `libsqlite3.so` beside the binary (Linux does not search the executable's dir;
+      Windows does, so it needs nothing). **Verified on a real Linux package:**
+      `chatl-0.1.0-linux-x64.zip` built, `sha256sum -c SHA256SUMS` → OK, unzipped binary
+      reports `chatl 0.1.0`, and a run from an empty HOME created a valid
+      `SQLite format 3` session DB while `LD_DEBUG` showed it loading the *bundled*
+      `/tmp/…/libsqlite3.so`. 161 tests pass; Windows packaging stays CI-only.
   - **Acceptance:** running it produces `dist/chatl-<version>-<platform>.zip` containing the
     compiled binary, the bundled sqlite3 library, `README` (how to run/where to unzip), and
     writes `dist/SHA256SUMS`; the zipped binary reports the injected version and can open a
@@ -77,7 +87,7 @@ section.
   - **Files:** `tool/package_release.dart`, `tool/sqlite_assets.dart`, tests.
   - **Scope:** M · bundle · TDD on the pure helpers; the compile step is verified by the
     run above. **Windows artifact is built by CI (Task 0.4), not locally** — the local run
-    is the Linux proof.
+    is the Linux proof. *(done)*
 
 - [ ] **Task 0.4: Release workflow (tag-triggered)**
   - **Acceptance:** `.github/workflows/release.yml` triggers on `v*` tags; first step runs
