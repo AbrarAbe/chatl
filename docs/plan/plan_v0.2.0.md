@@ -105,7 +105,7 @@ section.
   - **Files:** `.github/workflows/release.yml`.
   - **Scope:** M · bundle · test strategy: config + the tool it calls.
 
-- [ ] **Task 0.5: Install scripts**
+- [x] **Task 0.5: Install scripts***
   - **Acceptance:** `install.sh` (Linux) and `install.ps1` (Windows): detect OS/arch, fetch
     the matching asset for `--version <v>` (default: latest), **verify SHA256 against
     `SHA256SUMS`**, install to `~/.local/bin/chatl` (Linux) / `%LOCALAPPDATA%\chatl`
@@ -118,7 +118,7 @@ section.
   - **Files:** `install.sh`, `install.ps1`, `tool/test_install.sh`, CI step.
   - **Scope:** M · bundle · test strategy: shell-level integration in CI + local run above.
 
-- [ ] **Task 0.6: Distribution docs + scaffold cleanup**
+- [x] **Task 0.6: Distribution docs + scaffold cleanup***
   - **Acceptance:** spec gains a Distribution section (install commands, `--version`, asset
     names, checksum verification, uninstall); `README.md` has a quickstart (install, config
     sample, first run, `/` and `@` cheatsheet); Flutter/IDE leftovers removed:
