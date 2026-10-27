@@ -3,39 +3,48 @@ import 'package:chatl/src/providers/provider.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/ui/chat_screen.dart';
 import 'package:chatl/src/ui/theme.dart';
-import 'package:nocterm/nocterm.dart' hide isNotEmpty;
+import 'package:nocterm/nocterm.dart';
 import 'package:test/test.dart';
 
-Config configWith({String theme = 'dark', String prefix = '❯'}) => Config(
+Config configWith({String? theme, bool? markdown, String? prefix}) => Config(
   models: const {'default': ModelProfile(model: 'gpt-4o')},
   personas: const {'default': 'Terse.'},
-  ui: UiConfig(theme: theme, promptPrefix: prefix, markdown: false),
+  ui: UiConfig(theme: theme ?? 'dark', promptPrefix: prefix ?? '❯', markdown: markdown ?? true),
   commands: const [],
+  search: const SearchConfig(backend: '', results: 5, citations: true),
   warnings: const [],
 );
 
+class FakeProvider implements Provider {
+  FakeProvider(this.scripts);
+  final List<List<ChatEvent>> scripts;
+  final List<StreamRequest> requests = [];
+  var _call = 0;
+
+  @override
+  Stream<ChatEvent> chat(StreamRequest request) {
+    requests.add(request);
+    return Stream.fromIterable(scripts[_call++]);
+  }
+}
+
 SessionController controllerFor(Config config) => SessionController(
   config: config,
-  providerFor: (_) =>
-      const FakeProvider([ChatTextEvent('a1'), ChatDoneEvent()]),
+  providerFor: (_) => FakeProvider([
+    [ChatTextEvent('a1'), ChatDoneEvent()],
+  ]),
 );
 
 /// Colour of the first cell of [needle], as the terminal actually painted it.
 Future<Color?> colourOf(NoctermTester tester, String needle) async {
   final positions = tester.terminalState.findText(needle);
   if (positions.isEmpty) return null;
-  final cell = tester.terminalState.getCellAt(
-    positions.first.x,
-    positions.first.y,
-  );
+  final cell = tester.terminalState.getCellAt(positions.first.x, positions.first.y);
   return cell?.style.color;
 }
 
 void main() {
-  Future<void> pumpReply(
-    NoctermTester tester,
-    SessionController controller,
-  ) async {
+  Future<void> pumpReply(NoctermTester tester, SessionController controller) async {
     await tester.pumpComponent(ChatScreen(controller: controller));
     await tester.pump();
     await tester.enterText('q1');
@@ -69,9 +78,7 @@ void main() {
 
   test('ui.prompt_prefix from config is what the input line shows', () async {
     await testNocterm('prefix', (tester) async {
-      await tester.pumpComponent(
-        ChatScreen(controller: controllerFor(configWith(prefix: '»'))),
-      );
+      await tester.pumpComponent(ChatScreen(controller: controllerFor(configWith(prefix: '»'))));
       await tester.pump();
 
       expect(tester.terminalState.containsText('»'), isTrue);

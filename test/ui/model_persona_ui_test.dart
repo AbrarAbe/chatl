@@ -1,4 +1,3 @@
-import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/providers/provider.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/state/database.dart';
@@ -7,18 +6,7 @@ import 'package:chatl/src/ui/chat_screen.dart';
 import 'package:nocterm/nocterm.dart';
 import 'package:test/test.dart';
 
-import '../session/session_controller_test.dart' show RecordingProvider;
-
-Config testConfig() => Config(
-  models: const {
-    'default': ModelProfile(model: 'gpt-4o'),
-    'cheap': ModelProfile(model: 'gpt-4o-mini'),
-  },
-  personas: const {'default': 'Terse.', 'review': 'Skeptical.'},
-  ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
-  commands: const [],
-  warnings: const [],
-);
+import '../session/test_helper.dart';
 
 void main() {
   late ChatlDatabase db;
@@ -74,12 +62,7 @@ void main() {
         expect(provider.requests[0].model, 'gpt-4o');
 
         await typeAndPump(tester, '/model cheap');
-        expect(
-          tester.terminalState.containsText(
-            '/model: now using profile "cheap"',
-          ),
-          isTrue,
-        );
+        expect(tester.terminalState.containsText('/model: now using profile "cheap"'), isTrue);
 
         await typeAndPump(tester, 'q2');
         expect(provider.requests[1].model, 'gpt-4o-mini');
@@ -90,30 +73,27 @@ void main() {
       }, size: const Size(90, 24));
     });
 
-    test(
-      '/persona <name> swaps the system prompt for later requests',
-      () async {
-        final provider = RecordingProvider([
-          const [ChatTextEvent('a1'), ChatDoneEvent()],
-          const [ChatTextEvent('a2'), ChatDoneEvent()],
-        ]);
-        final controller = await persisted(provider);
+    test('/persona <name> swaps the system prompt for later requests', () async {
+      final provider = RecordingProvider([
+        const [ChatTextEvent('a1'), ChatDoneEvent()],
+        const [ChatTextEvent('a2'), ChatDoneEvent()],
+      ]);
+      final controller = await persisted(provider);
 
-        await testNocterm('persona', (tester) async {
-          await tester.pumpComponent(ChatScreen(controller: controller));
-          await tester.pump();
+      await testNocterm('persona', (tester) async {
+        await tester.pumpComponent(ChatScreen(controller: controller));
+        await tester.pump();
 
-          await typeAndPump(tester, 'q1');
-          expect(provider.requests[0].messages.first.content, 'Terse.');
+        await typeAndPump(tester, 'q1');
+        expect(provider.requests[0].messages.first.content, 'Terse.');
 
-          await typeAndPump(tester, '/persona review');
-          await typeAndPump(tester, 'q2');
+        await typeAndPump(tester, '/persona review');
+        await typeAndPump(tester, 'q2');
 
-          expect(provider.requests[1].messages.first.content, 'Skeptical.');
-          expect((await store.getSession('s1')).persona, 'review');
-        }, size: const Size(90, 24));
-      },
-    );
+        expect(provider.requests[1].messages.first.content, 'Skeptical.');
+        expect((await store.getSession('s1')).persona, 'review');
+      }, size: const Size(90, 24));
+    });
 
     test('unknown profile name fails visibly and lists what exists', () async {
       final provider = RecordingProvider([]);
@@ -125,10 +105,7 @@ void main() {
 
         await typeAndPump(tester, '/model nope');
 
-        expect(
-          tester.terminalState.containsText('unknown model "nope"'),
-          isTrue,
-        );
+        expect(tester.terminalState.containsText('unknown model "nope"'), isTrue);
         expect(tester.terminalState.containsText('default, cheap'), isTrue);
         expect(controller.currentModel, 'default');
       }, size: const Size(90, 24));
@@ -144,10 +121,7 @@ void main() {
 
         await typeAndPump(tester, '/model');
 
-        expect(
-          tester.terminalState.containsText('models (active: default)'),
-          isTrue,
-        );
+        expect(tester.terminalState.containsText('models (active: default)'), isTrue);
         expect(tester.terminalState.containsText('* default'), isTrue);
         expect(tester.terminalState.containsText('cheap'), isTrue);
       }, size: const Size(90, 24));
@@ -163,10 +137,7 @@ void main() {
 
         await typeAndPump(tester, '/persona');
 
-        expect(
-          tester.terminalState.containsText('personas (active: default)'),
-          isTrue,
-        );
+        expect(tester.terminalState.containsText('personas (active: default)'), isTrue);
         expect(tester.terminalState.containsText('review'), isTrue);
       }, size: const Size(90, 24));
     });

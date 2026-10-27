@@ -1,4 +1,3 @@
-import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/providers/provider.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/state/database.dart';
@@ -7,15 +6,7 @@ import 'package:chatl/src/ui/chat_screen.dart';
 import 'package:nocterm/nocterm.dart';
 import 'package:test/test.dart';
 
-import '../session/session_controller_test.dart' show RecordingProvider;
-
-Config testConfig() => Config(
-  models: const {'default': ModelProfile(model: 'gpt-4o')},
-  personas: const {'default': 'Terse.'},
-  ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
-  commands: const [],
-  warnings: const [],
-);
+import '../session/test_helper.dart';
 
 void main() {
   late ChatlDatabase db;
@@ -48,11 +39,7 @@ void main() {
   }
 
   /// Sends [text] and waits until [expect] appears on screen.
-  Future<void> typeAndWait(
-    NoctermTester tester,
-    String text,
-    String expect,
-  ) async {
+  Future<void> typeAndWait(NoctermTester tester, String text, String expect) async {
     await tester.enterText(text);
     await tester.sendKey(LogicalKey.enter);
     for (var i = 0; i < 30; i++) {
@@ -97,21 +84,16 @@ void main() {
         await tester.pump();
 
         await typeAndWait(tester, 'q1', 'a1');
-        expect(controller.transcript.map((t) => t.content).toList(), [
-          'q1',
-          'a1',
-        ]);
-        final originalUserIds = (await store.activeBranch(
-          await store.getSession('s1'),
-        )).where((m) => m.role == 'user').map((m) => m.id).toList();
+        expect(controller.transcript.map((t) => t.content).toList(), ['q1', 'a1']);
+        final originalUserIds = (await store.activeBranch(await store.getSession('s1')))
+            .where((m) => m.role == 'user')
+            .map((m) => m.id)
+            .toList();
 
         await typeAndWait(tester, '/edit q1 revised', 'a2');
 
         expect(tester.terminalState.containsText('q1 revised'), isTrue);
-        expect(controller.transcript.map((t) => t.content).toList(), [
-          'q1 revised',
-          'a2',
-        ]);
+        expect(controller.transcript.map((t) => t.content).toList(), ['q1 revised', 'a2']);
 
         // the persisted branch reflects the fork; the old branch survives
         final branch = await store.activeBranch(await store.getSession('s1'));

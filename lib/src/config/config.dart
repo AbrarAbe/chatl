@@ -33,15 +33,20 @@ class SlashCommand {
 
 /// The `ui:` section.
 class UiConfig {
-  const UiConfig({
-    required this.theme,
-    required this.promptPrefix,
-    required this.markdown,
-  });
+  const UiConfig({required this.theme, required this.promptPrefix, required this.markdown});
 
   final String theme;
   final String promptPrefix;
   final bool markdown;
+}
+
+/// One entry under `search:`.
+class SearchConfig {
+  const SearchConfig({required this.backend, required this.results, this.citations = true});
+
+  final String backend;
+  final int results;
+  final bool citations;
 }
 
 /// Validated chatl configuration (spec §Config Surface).
@@ -52,17 +57,19 @@ class Config {
     required this.ui,
     required this.commands,
     required this.warnings,
+    required this.search,
   });
 
   final Map<String, ModelProfile> models;
   final Map<String, String> personas;
   final UiConfig ui;
   final List<SlashCommand> commands;
+  final SearchConfig search;
 
   /// Non-fatal problems: missing file, unknown keys, unset `$ENV` vars.
   final List<String> warnings;
 
-  static const _knownTopLevel = {'models', 'persona', 'ui', 'commands'};
+  static const _knownTopLevel = {'models', 'persona', 'ui', 'commands', 'search'};
 
   static final _envPattern = RegExp(r'\$(\w+)|\$\{(\w+)\}');
 
@@ -77,13 +84,11 @@ class Config {
     Map<String, String>? environment,
   }) async {
     final env = environment ?? Platform.environment;
-    final configPath =
-        path ?? p.join(_home(), '.config', 'chatl', 'config.yaml');
+    final configPath = path ?? p.join(_home(), '.config', 'chatl', 'config.yaml');
 
     final String? source = sourceOverride;
     if (source == null && !File(configPath).existsSync()) {
-      return Config._defaults()
-        ..warnings.add('no config file at $configPath — using defaults');
+      return Config._defaults()..warnings.add('no config file at $configPath — using defaults');
     }
 
     final warnings = <String>[];
@@ -113,24 +118,22 @@ class Config {
       personas: _parsePersonas(root['persona'], configPath),
       ui: _parseUi(root['ui'], configPath),
       commands: _parseCommands(root['commands'], configPath),
+      search: _parseSearch(root['search'], configPath),
       warnings: warnings,
     );
   }
 
   static Config _defaults() => Config(
     models: const {'default': ModelProfile(model: 'gpt-4o')},
-    personas: const {
-      'default': 'Concise technical assistant. Terse. No preamble.',
-    },
+    personas: const {'default': 'Concise technical assistant. Terse. No preamble.'},
     ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
     commands: const [],
+    search: const SearchConfig(backend: '', results: 5, citations: true),
     warnings: [],
   );
 
   static String _home() =>
-      Platform.environment['HOME'] ??
-      Platform.environment['USERPROFILE'] ??
-      '.';
+      Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '.';
 
   static String _interpolate(
     String text,
@@ -175,9 +178,7 @@ class Config {
       } else if (value is YamlMap) {
         for (final key in value.nodes.keys) {
           if (!_knownModelKeys.contains(key)) {
-            warnings.add(
-              '$path: models.$name has unknown key "$key" (ignored)',
-            );
+            warnings.add('$path: models.$name has unknown key "$key" (ignored)');
           }
         }
         if (!value.nodes.containsKey('base_url')) {
@@ -213,11 +214,7 @@ class Config {
             '(line ${value.span.start.line + 1})',
           );
         }
-        out[name] = ModelProfile(
-          model: model,
-          baseUrl: baseUrl,
-          apiKey: apiKey as String?,
-        );
+        out[name] = ModelProfile(model: model, baseUrl: baseUrl, apiKey: apiKey as String?);
       } else {
         throw ConfigException(
           '$path: models.$name has unexpected content '
@@ -283,11 +280,7 @@ class Config {
       }
       markdown = value;
     }
-    return UiConfig(
-      theme: theme,
-      promptPrefix: promptPrefix,
-      markdown: markdown,
-    );
+    return UiConfig(theme: theme, promptPrefix: promptPrefix, markdown: markdown);
   }
 
   static List<SlashCommand> _parseCommands(YamlNode? node, String path) {
@@ -323,5 +316,45 @@ class Config {
       out.add(SlashCommand(name: name, prompt: prompt));
     }
     return out;
+  }
+
+  static SearchConfig _parseSearch(YamlNode? node, String path) {
+    if (node == null) return const SearchConfig(backend: '', results: 5);
+    if (node is! YamlMap) {
+      throw ConfigException('$path: search must be a mapping');
+    }
+
+    final backendNode = node['backend'];
+    final backend = backendNode is String ? backendNode : '';
+    if (backendNode != null && backendNode is! String) {
+      throw ConfigException('$path: search.backend must be a string');
+    }
+
+    final resultsNode = node['results'];
+    int results = 5;
+    if (resultsNode != null) {
+      if (resultsNode is! int) {
+        throw ConfigException(
+          '$path: search.results must be an integer '
+          '(line ${resultsNode.span.start.line + 1})',
+        );
+      }
+      results = resultsNode;
+    }
+
+    final citationsNode = node.nodes['citations'];
+    bool citations = true;
+    if (citationsNode != null) {
+      final citationsValue = citationsNode.value;
+      if (citationsValue is! bool) {
+        throw ConfigException(
+          '$path: search.citations must be true or false '
+          '(line ${citationsNode.span.start.line + 1})',
+        );
+      }
+      citations = citationsValue;
+    }
+
+    return SearchConfig(backend: backend, results: results, citations: citations);
   }
 }

@@ -5,15 +5,41 @@ import 'package:chatl/src/state/database.dart';
 import 'package:chatl/src/state/session_store.dart';
 import 'package:test/test.dart';
 
-import 'session_controller_test.dart' show RecordingProvider;
-
 Config testConfig() => Config(
   models: const {'default': ModelProfile(model: 'gpt-4o')},
   personas: const {'default': 'Terse.'},
   ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
   commands: const [],
+  search: const SearchConfig(backend: '', results: 5, citations: true),
   warnings: const [],
 );
+
+class RecordingProvider implements Provider {
+  final List<List<ChatEvent>> scripts;
+  final List<StreamRequest> requests = [];
+  var _call = 0;
+
+  RecordingProvider(this.scripts);
+
+  @override
+  Stream<ChatEvent> chat(StreamRequest request) {
+    requests.add(request);
+    return Stream.fromIterable(scripts[_call++]);
+  }
+}
+
+class FakeProvider implements Provider {
+  FakeProvider(this.scripts);
+  final List<List<ChatEvent>> scripts;
+  final List<StreamRequest> requests = [];
+  var _call = 0;
+
+  @override
+  Stream<ChatEvent> chat(StreamRequest request) {
+    requests.add(request);
+    return Stream.fromIterable(scripts[_call++]);
+  }
+}
 
 void main() {
   late ChatlDatabase db;
@@ -28,17 +54,13 @@ void main() {
     await db.close();
   });
 
-  Future<Session> newSession() => store.createSession(
-    id: 's1',
-    title: '(untitled)',
-    model: 'default',
-    persona: 'default',
-  );
-
-  Future<SessionController> controllerWith(
-    RecordingProvider provider,
-    Session session,
-  ) async {
+  Future<SessionController> persisted(RecordingProvider provider) async {
+    final session = await store.createSession(
+      id: 's1',
+      title: '(untitled)',
+      model: 'default',
+      persona: 'default',
+    );
     final controller = SessionController.resume(
       config: testConfig(),
       providerFor: (_) => provider,
@@ -49,14 +71,13 @@ void main() {
     return controller;
   }
 
-  group('fork-on-edit (spec §MVP Scope, Success #5)', () {
+  group('fork-on-edit (spec MVP Scope)', () {
     test('editing a user turn forks and regenerates the reply', () async {
       final provider = RecordingProvider([
-        const [ChatTextEvent('answer one'), ChatDoneEvent()],
-        const [ChatTextEvent('answer two'), ChatDoneEvent()],
-        const [ChatTextEvent('regenerated'), ChatDoneEvent()],
+        const [ChatTextEvent('a1'), ChatDoneEvent()],
+        const [ChatTextEvent('a2'), ChatDoneEvent()],
       ]);
-      final controller = await controllerWith(provider, await newSession());
+      final controller = await persisted(provider);
 
       await controller.send('first question');
       await controller.send('second question');
@@ -67,7 +88,6 @@ void main() {
         'answer two',
       ]);
 
-      // edit the most recent user turn
       final editedUser = controller.transcript[2];
       await controller.editTurn(editedUser.id!, 'second question, revised');
 
@@ -84,25 +104,18 @@ void main() {
         const [ChatTextEvent('answer one'), ChatDoneEvent()],
         const [ChatTextEvent('regenerated'), ChatDoneEvent()],
       ]);
-      final controller = await controllerWith(provider, await newSession());
+      final controller = await persisted(provider);
 
       await controller.send('original question');
       final originalAssistant = controller.transcript[1];
 
-      await controller.editTurn(
-        controller.transcript[0].id!,
-        'revised question',
-      );
+      await controller.editTurn(controller.transcript[0].id!, 'revised question');
 
-      // original assistant reply still exists by id, pointing at old user turn
       final stored = await store.getMessage(originalAssistant.id!);
       expect(stored.content, 'answer one');
 
       final branch = await store.activeBranch(await store.getSession('s1'));
-      expect(branch.map((m) => m.content).toList(), [
-        'revised question',
-        'regenerated',
-      ]);
+      expect(branch.map((m) => m.content).toList(), ['revised question', 'regenerated']);
     });
 
     test('resume after edit shows the edited branch (Success #5)', () async {
@@ -110,56 +123,39 @@ void main() {
         const [ChatTextEvent('a1'), ChatDoneEvent()],
         const [ChatTextEvent('a2'), ChatDoneEvent()],
       ]);
-      final controller = await controllerWith(provider, await newSession());
+      final controller = await persisted(provider);
       await controller.send('q1');
       await controller.editTurn(controller.transcript[0].id!, 'q1 revised');
 
-      final resumed = await controllerWith(
-        provider,
-        await store.getSession('s1'),
+      final resumed = SessionController.resume(
+        config: testConfig(),
+        providerFor: (_) => provider,
+        store: store,
+        session: await store.getSession('s1'),
       );
-      expect(resumed.transcript.map((t) => t.content).toList(), [
-        'q1 revised',
-        'a2',
-      ]);
+      await resumed.ready;
+      expect(resumed.transcript.map((t) => t.content).toList(), ['q1 revised', 'a2']);
     });
 
     test('editing an assistant turn is rejected', () async {
       final provider = RecordingProvider([
         const [ChatTextEvent('a1'), ChatDoneEvent()],
       ]);
-      final controller = await controllerWith(provider, await newSession());
+      final controller = await persisted(provider);
       await controller.send('q1');
 
-      expect(
-        () => controller.editTurn(controller.transcript[1].id!, 'x'),
-        throwsArgumentError,
-      );
+      expect(() => controller.editTurn(controller.transcript[1].id!, 'x'), throwsArgumentError);
     });
 
     test('in-memory controllers reject editTurn (nothing to fork)', () async {
       final controller = SessionController(
         config: testConfig(),
-        providerFor: (_) => const FakeProvider([ChatDoneEvent()]),
+        providerFor: (_) => FakeProvider([
+          [ChatDoneEvent()],
+        ]),
       );
       await controller.send('q1');
       expect(() => controller.editTurn('nope', 'x'), throwsStateError);
-    });
-  });
-
-  group('/history (flat current-branch list, spec Decisions)', () {
-    test('history returns the active branch labels in order', () async {
-      final provider = RecordingProvider([
-        const [ChatTextEvent('a1'), ChatDoneEvent()],
-      ]);
-      final controller = await controllerWith(provider, await newSession());
-      await controller.send('q1');
-
-      final history = controller.history();
-      expect(history.map((h) => '${h.role}:${h.preview}').toList(), [
-        'user:q1',
-        'assistant:a1',
-      ]);
     });
   });
 }

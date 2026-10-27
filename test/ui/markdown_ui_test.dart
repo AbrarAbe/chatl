@@ -2,22 +2,33 @@ import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/providers/provider.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/ui/chat_screen.dart';
-import 'package:nocterm/nocterm.dart' hide isNotEmpty;
+import 'package:nocterm/nocterm.dart';
 import 'package:test/test.dart';
 
-Config configWith({required bool markdown}) => Config(
+Config configWith({bool? markdown}) => Config(
   models: const {'default': ModelProfile(model: 'gpt-4o')},
   personas: const {'default': 'Terse.'},
-  ui: UiConfig(theme: 'dark', promptPrefix: '❯', markdown: markdown),
+  ui: UiConfig(theme: 'dark', promptPrefix: '❯', markdown: markdown ?? true),
   commands: const [],
+  search: const SearchConfig(backend: '', results: 5, citations: true),
   warnings: const [],
 );
 
+class FakeProvider implements Provider {
+  FakeProvider(this.scripts);
+  final List<List<ChatEvent>> scripts;
+  final List<StreamRequest> requests = [];
+  var _call = 0;
+
+  @override
+  Stream<ChatEvent> chat(StreamRequest request) {
+    requests.add(request);
+    return Stream.fromIterable(scripts[_call++]);
+  }
+}
+
 void main() {
-  Future<void> pumpReply(
-    NoctermTester tester,
-    SessionController controller,
-  ) async {
+  Future<void> pumpReply(NoctermTester tester, SessionController controller) async {
     await tester.pumpComponent(ChatScreen(controller: controller));
     await tester.pump();
     await tester.enterText('q1');
@@ -31,9 +42,8 @@ void main() {
   test('ui.markdown: true renders the assistant reply as markdown', () async {
     final controller = SessionController(
       config: configWith(markdown: true),
-      providerFor: (_) => const FakeProvider([
-        ChatTextEvent('# heading\n\nsome **bold** words'),
-        ChatDoneEvent(),
+      providerFor: (_) => FakeProvider([
+        [ChatTextEvent('# heading\n\nsome **bold** words'), ChatDoneEvent()],
       ]),
     );
 
@@ -50,9 +60,8 @@ void main() {
   test('ui.markdown: false leaves the reply verbatim', () async {
     final controller = SessionController(
       config: configWith(markdown: false),
-      providerFor: (_) => const FakeProvider([
-        ChatTextEvent('# heading\n\nsome **bold** words'),
-        ChatDoneEvent(),
+      providerFor: (_) => FakeProvider([
+        [ChatTextEvent('# heading\n\nsome **bold** words'), ChatDoneEvent()],
       ]),
     );
 
