@@ -37,7 +37,11 @@ void main() {
 
     test('other platforms are untouched', () {
       expect(
-        bundledSqlitePath(executablePath: '/tmp/chatl', platform: 'macos', exists: (_) => true),
+        bundledSqlitePath(
+          executablePath: '/tmp/chatl',
+          platform: 'macos',
+          exists: (_) => true,
+        ),
         isNull,
       );
     });
