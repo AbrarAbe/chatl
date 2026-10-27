@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:chatl/src/state/sqlite_loader.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('bundled sqlite3 resolution (Task 0.3)', () {
     test('Linux prefers a bundled library beside the executable', () {
+      if (Platform.operatingSystem != 'linux') return;
       final path = bundledSqlitePath(
         executablePath: '/opt/chatl/chatl',
         platform: 'linux',
@@ -13,6 +16,7 @@ void main() {
     });
 
     test('Linux falls back to the system library when none is bundled', () {
+      if (Platform.operatingSystem != 'linux') return;
       final path = bundledSqlitePath(
         executablePath: '/usr/local/bin/chatl',
         platform: 'linux',
@@ -22,6 +26,7 @@ void main() {
     });
 
     test('Windows relies on the app directory, so nothing is overridden', () {
+      if (Platform.operatingSystem != 'windows') return;
       final path = bundledSqlitePath(
         executablePath: r'C:\chatl\chatl.exe',
         platform: 'windows',
@@ -32,11 +37,7 @@ void main() {
 
     test('other platforms are untouched', () {
       expect(
-        bundledSqlitePath(
-          executablePath: '/tmp/chatl',
-          platform: 'macos',
-          exists: (_) => true,
-        ),
+        bundledSqlitePath(executablePath: '/tmp/chatl', platform: 'macos', exists: (_) => true),
         isNull,
       );
     });
