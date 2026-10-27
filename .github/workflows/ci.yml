@@ -22,9 +22,9 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - uses: dart-lang/setup-dart@v1
+            - uses: dart-lang/setup-dart@v2
               with:
-                  sdk: stable
+                  sdk: 3.14.0-211.1.beta
 
             - name: Cache pub packages
               uses: actions/cache@v4
