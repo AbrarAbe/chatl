@@ -78,6 +78,7 @@ class SessionController {
 
   /// `@` mention resolver (spec §The `@` resolver layer). v1 registers none.
   final MentionResolver _resolver;
+
   final StreamController<void> _updates = StreamController<void>.broadcast();
 
   late String _modelName;
@@ -318,7 +319,7 @@ class SessionController {
     _assignTurnId(transcript.length - 2, await _persistUserTurn(text));
 
     // `@` mentions expand client-side, before the request is built; the
-    // transcript keeps the raw text the user typed (spec §The @ resolver
+    // transcript keeps the raw text the user typed (spec §The `@` resolver
     // layer). The resolved form rides on the turn so later requests never
     // leak the syntax either.
     final resolution = await _resolver.resolve(text);

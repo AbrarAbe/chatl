@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:chatl/src/cli/args.dart';
 import 'package:chatl/src/config/config.dart';
+import 'package:chatl/src/resolve/resolver.dart';
+import 'package:chatl/src/resolve/search.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/state/database.dart';
 import 'package:chatl/src/state/session_store.dart';
 import 'package:chatl/src/state/sqlite_loader.dart';
-import 'package:chatl/src/version.dart';
 import 'package:chatl/src/ui/app.dart';
+import 'package:chatl/src/version.dart';
 import 'package:nocterm/nocterm.dart';
 import 'package:path/path.dart' as p;
 
@@ -76,6 +78,11 @@ Future<void> main(List<String> argv) async {
       providerFor: providerForProfile,
       store: store,
       session: s,
+      resolver: MentionResolver(
+        entries: const [],
+        searchResolver:
+            SearchResolver(), // v1: no backend → searches fail visibly
+      ),
     );
     await controller.ready;
     return controller;

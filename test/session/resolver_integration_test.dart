@@ -1,11 +1,27 @@
 import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/providers/provider.dart';
 import 'package:chatl/src/resolve/resolver.dart';
+import 'package:chatl/src/resolve/search.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:test/test.dart';
 
 import 'session_controller_test.dart' show RecordingProvider;
 
+/// Fake search resolver backend for testing.
+class FakeSearchBackend implements SearchBackend {
+  final List<SearchResult> results;
+  final void Function(String)? onCall;
+
+  FakeSearchBackend({required this.results, this.onCall});
+
+  @override
+  Future<List<SearchResult>> search(String query) async {
+    onCall?.call(query);
+    return results;
+  }
+}
+
+/// Test configuration helper.
 Config testConfig() => Config(
   models: const {'default': ModelProfile(model: 'gpt-4o')},
   personas: const {'default': 'Terse.'},
@@ -28,9 +44,20 @@ void main() {
               name: 'fake',
               takesArgument: true,
               resolve: (argument) async =>
-                  ContextBlock(source: 'fake:$argument', body: 'PAGE TEXT'),
+                  ContextBlock(source: 'fake', body: 'PAGE TEXT'),
             ),
           ],
+          searchResolver: SearchResolver(
+            backend: FakeSearchBackend(
+              results: [
+                SearchResult(
+                  title: 'Result 1',
+                  url: 'https://example.com/1',
+                  snippet: 'PAGE TEXT',
+                ),
+              ],
+            ),
+          ),
         );
         final controller = SessionController(
           config: testConfig(),
@@ -49,10 +76,7 @@ void main() {
         // what the model sees
         final userMessage = provider.requests.single.messages.last;
         expect(userMessage.role, 'user');
-        expect(
-          userMessage.content,
-          contains('[CONTEXT source="fake:https://x"'),
-        );
+        expect(userMessage.content, contains('[CONTEXT source="fake"]'));
         expect(userMessage.content, contains('PAGE TEXT'));
         expect(userMessage.content, contains('Q: is this true?'));
         expect(userMessage.content.contains('@fake'), isFalse);
@@ -86,16 +110,19 @@ void main() {
       ]);
       var calls = 0;
       final resolver = MentionResolver(
-        entries: [
-          ResolverEntry(
-            name: 'fake',
-            takesArgument: false,
-            resolve: (_) async {
-              calls++;
-              return const ContextBlock(source: 'fake', body: 'ONCE');
-            },
+        entries: const [],
+        searchResolver: SearchResolver(
+          backend: FakeSearchBackend(
+            results: [
+              SearchResult(
+                title: 'Result',
+                url: 'https://example.com',
+                snippet: 'ONCE',
+              ),
+            ],
+            onCall: (query) => calls++,
           ),
-        ],
+        ),
       );
       final controller = SessionController(
         config: testConfig(),
@@ -103,7 +130,7 @@ void main() {
         resolver: resolver,
       );
 
-      await controller.send('@fake first');
+      await controller.send('@search first');
       await controller.send('second');
 
       // the second request replays the already-resolved first turn verbatim

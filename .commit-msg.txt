@@ -1,8 +1,0 @@
-chore(init): scaffold chatl flutter project for linux and windows
-
-Initial scaffold for chatl, a chat-only terminal agent. See
-docs/ideas/chatl.md for the architecture rationale.
-
-- linux and windows desktop targets; macOS excluded
-- flutter create --empty, so no test/ directory yet
-- AGENTS.md and CLAUDE.md excluded from version control
