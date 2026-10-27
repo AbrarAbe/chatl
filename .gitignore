@@ -52,3 +52,5 @@ AGENTS.md
 CLAUDE.md
 # Release packaging output (tool/package_release.dart)
 dist/
+.metadata
+chatl.iml

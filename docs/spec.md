@@ -260,9 +260,9 @@ Released as platform binaries on GitHub Releases, installed by script:
 
 ```sh
 # Linux
-curl -fsSL https://raw.githubusercontent.com/<owner>/chatl/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/AbrarAbe/chatl/main/install.sh | sh
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/<owner>/chatl/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/AbrarAbe/chatl/main/install.ps1 | iex
 ```
 
 - Asset per platform: `chatl-<version>-linux-x64.zip`, `chatl-<version>-windows-x64.zip`,
