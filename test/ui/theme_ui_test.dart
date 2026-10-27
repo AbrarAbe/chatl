@@ -16,19 +16,26 @@ Config configWith({String theme = 'dark', String prefix = '❯'}) => Config(
 
 SessionController controllerFor(Config config) => SessionController(
   config: config,
-  providerFor: (_) => const FakeProvider([ChatTextEvent('a1'), ChatDoneEvent()]),
+  providerFor: (_) =>
+      const FakeProvider([ChatTextEvent('a1'), ChatDoneEvent()]),
 );
 
 /// Colour of the first cell of [needle], as the terminal actually painted it.
 Future<Color?> colourOf(NoctermTester tester, String needle) async {
   final positions = tester.terminalState.findText(needle);
   if (positions.isEmpty) return null;
-  final cell = tester.terminalState.getCellAt(positions.first.x, positions.first.y);
+  final cell = tester.terminalState.getCellAt(
+    positions.first.x,
+    positions.first.y,
+  );
   return cell?.style.color;
 }
 
 void main() {
-  Future<void> pumpReply(NoctermTester tester, SessionController controller) async {
+  Future<void> pumpReply(
+    NoctermTester tester,
+    SessionController controller,
+  ) async {
     await tester.pumpComponent(ChatScreen(controller: controller));
     await tester.pump();
     await tester.enterText('q1');
@@ -62,7 +69,9 @@ void main() {
 
   test('ui.prompt_prefix from config is what the input line shows', () async {
     await testNocterm('prefix', (tester) async {
-      await tester.pumpComponent(ChatScreen(controller: controllerFor(configWith(prefix: '»'))));
+      await tester.pumpComponent(
+        ChatScreen(controller: controllerFor(configWith(prefix: '»'))),
+      );
       await tester.pump();
 
       expect(tester.terminalState.containsText('»'), isTrue);

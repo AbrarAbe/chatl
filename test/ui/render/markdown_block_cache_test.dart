@@ -11,7 +11,8 @@ void main() {
 
       void render(String text) => cache.update(
         text,
-        onRender: ({required completed}) => completed ? completedRenders++ : openRenders++,
+        onRender: ({required completed}) =>
+            completed ? completedRenders++ : openRenders++,
       );
 
       render('first block');
@@ -56,7 +57,9 @@ void main() {
       cache.update('```\nline one\n\nline two');
 
       expect(cache.completedLines, isEmpty);
-      expect(cache.openLines.map((l) => l.style).toSet(), {LineStyle.codeBlock});
+      expect(cache.openLines.map((l) => l.style).toSet(), {
+        LineStyle.codeBlock,
+      });
     });
 
     test('rendering the same text twice renders the open block again only', () {
@@ -64,12 +67,14 @@ void main() {
       var completedRenders = 0;
       cache.update(
         'one\n\ntwo',
-        onRender: ({required completed}) => completed ? completedRenders++ : null,
+        onRender: ({required completed}) =>
+            completed ? completedRenders++ : null,
       );
 
       cache.update(
         'one\n\ntwo',
-        onRender: ({required completed}) => completed ? completedRenders++ : null,
+        onRender: ({required completed}) =>
+            completed ? completedRenders++ : null,
       );
 
       expect(completedRenders, 1);

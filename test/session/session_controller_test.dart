@@ -35,7 +35,10 @@ void main() {
       final provider = RecordingProvider([
         const [ChatTextEvent('Hel'), ChatTextEvent('lo'), ChatDoneEvent()],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       await controller.send('hi');
 
@@ -48,31 +51,45 @@ void main() {
       expect(controller.transcript[1].error, isFalse);
     });
 
-    test('request carries persona system message, prior turns, model', () async {
-      final provider = RecordingProvider([
-        const [ChatTextEvent('one'), ChatDoneEvent()],
-        const [ChatTextEvent('two'), ChatDoneEvent()],
-      ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+    test(
+      'request carries persona system message, prior turns, model',
+      () async {
+        final provider = RecordingProvider([
+          const [ChatTextEvent('one'), ChatDoneEvent()],
+          const [ChatTextEvent('two'), ChatDoneEvent()],
+        ]);
+        final controller = SessionController(
+          config: testConfig(),
+          providerFor: (_) => provider,
+        );
 
-      await controller.send('first');
-      await controller.send('second');
+        await controller.send('first');
+        await controller.send('second');
 
-      final first = provider.requests[0];
-      expect(first.model, 'gpt-4o');
-      expect(first.messages.first.role, 'system');
-      expect(first.messages.first.content, 'Terse.');
-      expect(first.messages.last.content, 'first');
+        final first = provider.requests[0];
+        expect(first.model, 'gpt-4o');
+        expect(first.messages.first.role, 'system');
+        expect(first.messages.first.content, 'Terse.');
+        expect(first.messages.last.content, 'first');
 
-      final second = provider.requests[1];
-      expect(second.messages.map((m) => m.content).toList(), ['Terse.', 'first', 'one', 'second']);
-    });
+        final second = provider.requests[1];
+        expect(second.messages.map((m) => m.content).toList(), [
+          'Terse.',
+          'first',
+          'one',
+          'second',
+        ]);
+      },
+    );
 
     test('provider error event becomes visible error turn', () async {
       final provider = RecordingProvider([
         const [ChatErrorEvent('HTTP 500: nope')],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       await controller.send('hi');
 
@@ -86,7 +103,10 @@ void main() {
         const [ChatTextEvent('a'), ChatDoneEvent()],
         const [ChatTextEvent('b'), ChatDoneEvent()],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       await controller.send('one');
       controller.setModel('cheap');
@@ -95,7 +115,10 @@ void main() {
 
       expect(provider.requests[0].model, 'gpt-4o');
       expect(provider.requests[1].model, 'gpt-4o-mini');
-      expect(provider.requests[1].messages.first.content, 'Skeptical reviewer.');
+      expect(
+        provider.requests[1].messages.first.content,
+        'Skeptical reviewer.',
+      );
     });
 
     test('unknown model/persona name throws', () {
@@ -113,7 +136,10 @@ void main() {
         // deliberately never completes within the test
       ]);
       provider.scripts.add(const [ChatTextEvent('slow...')]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       final pending = controller.send('hi');
       expect(controller.streaming, isTrue);
@@ -125,7 +151,10 @@ void main() {
       final provider = RecordingProvider([
         const [ChatTextEvent('a'), ChatTextEvent('b'), ChatDoneEvent()],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
 
       var updates = 0;
       final sub = controller.updates.listen((_) => updates++);

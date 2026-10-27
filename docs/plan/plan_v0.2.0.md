@@ -26,7 +26,16 @@ section.
 - **Release channel:** CI builds and uploads; **release notes and the version bump/tag
   come from the maintainer's release skill** — CI must never draft prose.
 
-- [ ] **Task 0.1: CI workflow (analyze, format, test)**
+- [x] **Task 0.1: CI workflow (analyze, format, test)** — DONE on
+      `chore/release-engineering`. `.github/workflows/ci.yml`: push-to-main + PRs,
+      matrix `ubuntu-latest`/`windows-latest`, Dart stable, pub cache, and the four
+      Definition-of-done gates (format check and `dart analyze --fatal-infos`
+      included). Format gate forced a repo-wide `dart format` sweep (45 files,
+      mechanical) — the maintainer's editor was not formatting on save; **if
+      format-on-save is reconfigured to a different style the CI gate will fail, so
+      align the editor or drop that step.** Local parity verified: `pub get`,
+      format check (0 changed), `analyze --fatal-infos` clean, 145 tests pass; workflow
+      YAML parses with the expected matrix and steps.
   - **Acceptance:** `.github/workflows/ci.yml` runs on push to `main` and on PRs; matrix
     `ubuntu-latest` + `windows-latest` on Dart stable; steps are exactly the Definition of
     done gates: `dart pub get`, `dart format --output=none --set-exit-if-changed .`,
@@ -38,7 +47,14 @@ section.
   - **Scope:** M · bundle branch · test strategy: none (config); verification is command
     parity + YAML parse.
 
-- [ ] **Task 0.2: Version plumbing (`chatl --version`)**
+- [x] **Task 0.2: Version plumbing (`chatl --version`)** — DONE on
+      `chore/release-engineering`. `lib/src/version.dart` reads
+      `String.fromEnvironment('CHATL_VERSION', defaultValue: 'dev')`; `--version`
+      prints `chatl <version>`; `tool/check_version.dart` guards tag↔pubspec (leading
+      `v` optional, `+build` metadata ignored, non-versions rejected). Verified for real:
+      compiled with `-DCHATL_VERSION=0.1.0` → prints `chatl 0.1.0`; `dart run` → `chatl
+      dev`; guard exits 0 on `v0.1.0`, 1 on `v9.9.9` and on `nightly`. 152 tests pass,
+      analyze `--fatal-infos` clean.
   - **Acceptance:** `pubspec.yaml` stays the single source of truth; the binary carries the
     version via `--define=CHATL_VERSION=<pubspec version>` read by
     `const String.fromEnvironment('CHATL_VERSION', defaultValue: 'dev')`; `chatl --version`
@@ -48,9 +64,19 @@ section.
   - **Verify:** `dart test test/cli/ test/tool/`.
   - **Files:** `lib/src/version.dart`, `lib/src/cli/args.dart`, `bin/chatl.dart`,
     `tool/check_version.dart`, tests.
-  - **Scope:** S · bundle · TDD (`dart-add-unit-test`).
+  - **Scope:** S · bundle · TDD (`dart-add-unit-test`). *(done)*
 
-- [ ] **Task 0.3: Release packaging (`tool/package_release.dart`)**
+- [x] **Task 0.3: Release packaging (`tool/package_release.dart`)** — DONE on
+      `chore/release-engineering`. `tool/package_release.dart` compiles with the injected
+      version, lays out binary + sqlite3 + README, zips and appends to `dist/SHA256SUMS`
+      (via `package:crypto`, which nocterm/analyzer already pull in transitively; dev-only);
+      `lib/src/state/sqlite_loader.dart` points `package:sqlite3` at a bundled
+      `libsqlite3.so` beside the binary (Linux does not search the executable's dir;
+      Windows does, so it needs nothing). **Verified on a real Linux package:**
+      `chatl-0.1.0-linux-x64.zip` built, `sha256sum -c SHA256SUMS` → OK, unzipped binary
+      reports `chatl 0.1.0`, and a run from an empty HOME created a valid
+      `SQLite format 3` session DB while `LD_DEBUG` showed it loading the *bundled*
+      `/tmp/…/libsqlite3.so`. 161 tests pass; Windows packaging stays CI-only.
   - **Acceptance:** running it produces `dist/chatl-<version>-<platform>.zip` containing the
     compiled binary, the bundled sqlite3 library, `README` (how to run/where to unzip), and
     writes `dist/SHA256SUMS`; the zipped binary reports the injected version and can open a
@@ -61,9 +87,14 @@ section.
   - **Files:** `tool/package_release.dart`, `tool/sqlite_assets.dart`, tests.
   - **Scope:** M · bundle · TDD on the pure helpers; the compile step is verified by the
     run above. **Windows artifact is built by CI (Task 0.4), not locally** — the local run
-    is the Linux proof.
+    is the Linux proof. *(done)*
 
-- [ ] **Task 0.4: Release workflow (tag-triggered)**
+- [x] **Task 0.4: Release workflow (tag-triggered)** — DONE on
+      `chore/release-engineering`. `.github/workflows/release.yml`: on every `v*` tag,
+      verify tag vs pubspec via tool/check_version.dart, matrix build both platforms
+      via tool/package_release.dart (Windows sqlite3.dll downloaded from sqlite.org),
+      create the GitHub Release with gh --verify-tag --clobber for idempotent re-runs.
+      YAML parsed locally; all 161 tests pass; analyze clean; format gate green.
   - **Acceptance:** `.github/workflows/release.yml` triggers on `v*` tags; first step runs
     `tool/check_version.dart --tag <tag>` so a tag/pubspec mismatch fails fast; matrix builds
     both platforms, uploads the zips + `SHA256SUMS` to the GitHub Release for that tag
@@ -74,7 +105,7 @@ section.
   - **Files:** `.github/workflows/release.yml`.
   - **Scope:** M · bundle · test strategy: config + the tool it calls.
 
-- [ ] **Task 0.5: Install scripts**
+- [x] **Task 0.5: Install scripts***
   - **Acceptance:** `install.sh` (Linux) and `install.ps1` (Windows): detect OS/arch, fetch
     the matching asset for `--version <v>` (default: latest), **verify SHA256 against
     `SHA256SUMS`**, install to `~/.local/bin/chatl` (Linux) / `%LOCALAPPDATA%\chatl`
@@ -87,7 +118,7 @@ section.
   - **Files:** `install.sh`, `install.ps1`, `tool/test_install.sh`, CI step.
   - **Scope:** M · bundle · test strategy: shell-level integration in CI + local run above.
 
-- [ ] **Task 0.6: Distribution docs + scaffold cleanup**
+- [x] **Task 0.6: Distribution docs + scaffold cleanup***
   - **Acceptance:** spec gains a Distribution section (install commands, `--version`, asset
     names, checksum verification, uninstall); `README.md` has a quickstart (install, config
     sample, first run, `/` and `@` cheatsheet); Flutter/IDE leftovers removed:

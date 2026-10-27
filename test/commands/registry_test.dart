@@ -6,7 +6,9 @@ Config testConfig() => Config(
   models: const {'default': ModelProfile(model: 'gpt-4o')},
   personas: const {'default': 'Terse.'},
   ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
-  commands: const [SlashCommand(name: 'recap', prompt: 'Summarize in 5 bullets.')],
+  commands: const [
+    SlashCommand(name: 'recap', prompt: 'Summarize in 5 bullets.'),
+  ],
   warnings: const [],
 );
 
@@ -29,10 +31,22 @@ void main() {
     });
 
     test('built-in actions map to their action', () {
-      expect((registry.resolve('/new') as CommandAction).action, BuiltinAction.newSession);
-      expect((registry.resolve('/history') as CommandAction).action, BuiltinAction.showHistory);
-      expect((registry.resolve('/context') as CommandAction).action, BuiltinAction.showContext);
-      expect((registry.resolve('/copy') as CommandAction).action, BuiltinAction.copyLastReply);
+      expect(
+        (registry.resolve('/new') as CommandAction).action,
+        BuiltinAction.newSession,
+      );
+      expect(
+        (registry.resolve('/history') as CommandAction).action,
+        BuiltinAction.showHistory,
+      );
+      expect(
+        (registry.resolve('/context') as CommandAction).action,
+        BuiltinAction.showContext,
+      );
+      expect(
+        (registry.resolve('/copy') as CommandAction).action,
+        BuiltinAction.copyLastReply,
+      );
     });
 
     test('/rename requires a title', () {
@@ -73,7 +87,10 @@ void main() {
           warnings: const [],
         ),
       );
-      expect((shadowing.resolve('/new') as CommandAction).action, BuiltinAction.newSession);
+      expect(
+        (shadowing.resolve('/new') as CommandAction).action,
+        BuiltinAction.newSession,
+      );
     });
   });
 }

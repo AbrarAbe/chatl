@@ -18,7 +18,9 @@ void main() {
 
     test('markdown on strips emphasis markers', () async {
       await testNocterm('md', (tester) async {
-        await tester.pumpComponent(const StreamingMarkdownView(text: '**bold** now'));
+        await tester.pumpComponent(
+          const StreamingMarkdownView(text: '**bold** now'),
+        );
         await tester.pump();
 
         expect(tester.terminalState.containsText('bold now'), isTrue);
@@ -26,18 +28,23 @@ void main() {
       });
     });
 
-    test('a streaming code fence renders code text without fence markers', () async {
-      await testNocterm('fence', (tester) async {
-        await tester.pumpComponent(
-          const StreamingMarkdownView(text: 'before\n\n```dart\nfinal x = 1;'),
-        );
-        await tester.pump();
+    test(
+      'a streaming code fence renders code text without fence markers',
+      () async {
+        await testNocterm('fence', (tester) async {
+          await tester.pumpComponent(
+            const StreamingMarkdownView(
+              text: 'before\n\n```dart\nfinal x = 1;',
+            ),
+          );
+          await tester.pump();
 
-        expect(tester.terminalState.containsText('before'), isTrue);
-        expect(tester.terminalState.containsText('final x = 1;'), isTrue);
-        expect(tester.terminalState.containsText('```dart'), isFalse);
-      });
-    });
+          expect(tester.terminalState.containsText('before'), isTrue);
+          expect(tester.terminalState.containsText('final x = 1;'), isTrue);
+          expect(tester.terminalState.containsText('```dart'), isFalse);
+        });
+      },
+    );
 
     test('a half-streamed table does not corrupt the display', () async {
       await testNocterm('table', (tester) async {

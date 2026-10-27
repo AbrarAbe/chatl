@@ -5,6 +5,8 @@ import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/state/database.dart';
 import 'package:chatl/src/state/session_store.dart';
+import 'package:chatl/src/state/sqlite_loader.dart';
+import 'package:chatl/src/version.dart';
 import 'package:chatl/src/ui/app.dart';
 import 'package:nocterm/nocterm.dart';
 import 'package:path/path.dart' as p;
@@ -17,6 +19,15 @@ Future<void> main(List<String> argv) async {
     stderr.writeln(e.message);
     exit(64); // EX_USAGE
   }
+
+  if (args.showVersion) {
+    stdout.writeln('chatl $chatlVersion');
+    return;
+  }
+
+  // Prefer the sqlite3 library shipped beside the binary (Linux does not
+  // search the executable's directory; Windows does).
+  useBundledSqlite();
 
   final config = await Config.load();
   for (final warning in config.warnings) {
@@ -74,7 +85,8 @@ Future<void> main(List<String> argv) async {
   final controller = await controllerFor(session);
 
   // `/new`: fresh persisted session, same config/store (spec §MVP Scope).
-  Future<SessionController> newSession() async => controllerFor(await createPersistedSession());
+  Future<SessionController> newSession() async =>
+      controllerFor(await createPersistedSession());
 
   await runApp(ChatlApp(controller: controller, newSession: newSession));
   await db.close();

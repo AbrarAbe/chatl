@@ -48,7 +48,9 @@ class CommandMessage extends CommandOutcome {
 /// Model; config entries never shadow built-ins).
 class SlashRegistry {
   SlashRegistry({required Config config})
-    : _configCommands = {for (final command in config.commands) command.name: command.prompt};
+    : _configCommands = {
+        for (final command in config.commands) command.name: command.prompt,
+      };
 
   final Map<String, String> _configCommands;
 
@@ -65,7 +67,9 @@ class SlashRegistry {
     final payload = space < 0 ? null : input.substring(space + 1).trim();
 
     if (name.isEmpty) {
-      return const CommandMessage('that is not a command — see /context for this session\'s state');
+      return const CommandMessage(
+        'that is not a command — see /context for this session\'s state',
+      );
     }
 
     switch (name) {

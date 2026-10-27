@@ -13,7 +13,9 @@ Config testConfig() => Config(
   models: const {'default': ModelProfile(model: 'gpt-4o')},
   personas: const {'default': 'Terse.'},
   ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
-  commands: const [SlashCommand(name: 'recap', prompt: 'Summarize in 5 bullets.')],
+  commands: const [
+    SlashCommand(name: 'recap', prompt: 'Summarize in 5 bullets.'),
+  ],
   warnings: const [],
 );
 
@@ -70,7 +72,10 @@ void main() {
 
         expect(tester.terminalState.containsText('session: s1'), isTrue);
         expect(tester.terminalState.containsText('gpt-4o'), isTrue);
-        expect(tester.terminalState.containsText('usage: provider did not report'), isTrue);
+        expect(
+          tester.terminalState.containsText('usage: provider did not report'),
+          isTrue,
+        );
       }, size: const Size(90, 24));
     });
 
@@ -84,7 +89,10 @@ void main() {
 
         await typeAndPump(tester, '/nope');
 
-        expect(tester.terminalState.containsText('unknown command /nope'), isTrue);
+        expect(
+          tester.terminalState.containsText('unknown command /nope'),
+          isTrue,
+        );
         expect(controller.transcript.map((t) => t.role).toList(), ['notice']);
       }, size: const Size(90, 24));
     });
@@ -120,7 +128,12 @@ void main() {
           await tester.pump(const Duration(milliseconds: 40));
         }
         expect((await store.getSession('s1')).title, 'errands');
-        expect(tester.terminalState.containsText('/rename: session is now "errands"'), isTrue);
+        expect(
+          tester.terminalState.containsText(
+            '/rename: session is now "errands"',
+          ),
+          isTrue,
+        );
       }, size: const Size(90, 24));
     });
 
@@ -147,7 +160,10 @@ void main() {
         await typeAndPump(tester, '/copy');
 
         expect(copied, 'copy me');
-        expect(tester.terminalState.containsText('/copy: 7 chars copied'), isTrue);
+        expect(
+          tester.terminalState.containsText('/copy: 7 chars copied'),
+          isTrue,
+        );
       }, size: const Size(90, 24));
     });
 

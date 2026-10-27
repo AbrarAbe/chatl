@@ -17,13 +17,19 @@ class MarkdownBlockCache {
   List<RenderedLine> get openLines => _open;
 
   /// Every visible line, blocks in order.
-  List<RenderedLine> get allLines => [for (final block in _completed) ...block, ..._open];
+  List<RenderedLine> get allLines => [
+    for (final block in _completed) ...block,
+    ..._open,
+  ];
 
   /// Re-splits [text]; renders only newly completed blocks plus the open one.
   ///
   /// [onRender] fires once per completed-block render and once per open-block
   /// render — the hook that proves frozen blocks are not re-parsed.
-  void update(String text, {void Function({required bool completed})? onRender}) {
+  void update(
+    String text, {
+    void Function({required bool completed})? onRender,
+  }) {
     final split = BlockSplitter.split(text);
     for (var i = _completed.length; i < split.completed.length; i++) {
       _completed.add(renderMarkdown(split.completed[i]));

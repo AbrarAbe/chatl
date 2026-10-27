@@ -1,4 +1,4 @@
-/// CLI argument parsing (`chatl`, `--continue`, `--session <id>`).
+/// CLI argument parsing (`chatl`, `--continue`, `--session <id>`, `--version`).
 class UsageException implements Exception {
   UsageException(this.message);
 
@@ -8,23 +8,32 @@ class UsageException implements Exception {
   String toString() => message;
 }
 
-/// Parsed invocation. See spec §MVP Scope: `--continue` / `--session <id>`.
+/// Parsed invocation. See spec §MVP Scope: `--continue` / `--session <id>`;
+/// §Distribution for `--version`.
 class ChatlArgs {
-  const ChatlArgs({this.continueLatest = false, this.sessionId});
+  const ChatlArgs({
+    this.continueLatest = false,
+    this.sessionId,
+    this.showVersion = false,
+  });
 
   final bool continueLatest;
   final String? sessionId;
+  final bool showVersion;
 }
 
-const usage = 'usage: chatl [--continue | -c] [--session <id>]';
+const usage = 'usage: chatl [--continue | -c] [--session <id>] [--version]';
 
 ChatlArgs parseArgs(List<String> argv) {
   var continueLatest = false;
+  var showVersion = false;
   String? sessionId;
 
   for (var i = 0; i < argv.length; i++) {
     final arg = argv[i];
-    if (arg == '--continue' || arg == '-c') {
+    if (arg == '--version') {
+      showVersion = true;
+    } else if (arg == '--continue' || arg == '-c') {
       continueLatest = true;
     } else if (arg == '--session') {
       if (i + 1 >= argv.length) {
@@ -43,8 +52,19 @@ ChatlArgs parseArgs(List<String> argv) {
   }
 
   if (continueLatest && sessionId != null) {
-    throw UsageException('--continue and --session are mutually exclusive.\n$usage');
+    throw UsageException(
+      '--continue and --session are mutually exclusive.\n$usage',
+    );
+  }
+  if (showVersion && (continueLatest || sessionId != null)) {
+    throw UsageException(
+      '--version cannot be combined with session flags.\n$usage',
+    );
   }
 
-  return ChatlArgs(continueLatest: continueLatest, sessionId: sessionId);
+  return ChatlArgs(
+    continueLatest: continueLatest,
+    sessionId: sessionId,
+    showVersion: showVersion,
+  );
 }

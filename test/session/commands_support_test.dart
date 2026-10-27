@@ -74,8 +74,14 @@ void main() {
 
     test('token usage accumulates when the provider reports it', () async {
       final provider = RecordingProvider([
-        const [ChatTextEvent('a'), ChatDoneEvent(promptTokens: 3, completionTokens: 5)],
-        const [ChatTextEvent('b'), ChatDoneEvent(promptTokens: 7, completionTokens: 11)],
+        const [
+          ChatTextEvent('a'),
+          ChatDoneEvent(promptTokens: 3, completionTokens: 5),
+        ],
+        const [
+          ChatTextEvent('b'),
+          ChatDoneEvent(promptTokens: 7, completionTokens: 11),
+        ],
       ]);
       final controller = await persisted(provider);
 

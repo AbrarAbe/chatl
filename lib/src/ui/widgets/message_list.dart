@@ -43,9 +43,15 @@ class MessageList extends StatelessComponent {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isUser ? '❯ ' : (isNotice ? 'ℹ ' : (turn.error ? '✗ ' : '◆ ')),
+                  isUser
+                      ? '❯ '
+                      : (isNotice ? 'ℹ ' : (turn.error ? '✗ ' : '◆ ')),
                   style: TextStyle(
-                    color: theme.accentFor(isUser: isUser, isNotice: isNotice, isError: turn.error),
+                    color: theme.accentFor(
+                      isUser: isUser,
+                      isNotice: isNotice,
+                      isError: turn.error,
+                    ),
                   ),
                 ),
                 Expanded(

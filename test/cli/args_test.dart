@@ -20,18 +20,43 @@ void main() {
     });
 
     test('conflicting flags are rejected', () {
-      expect(() => parseArgs(['--continue', '--session', 'x']), throwsA(isA<UsageException>()));
+      expect(
+        () => parseArgs(['--continue', '--session', 'x']),
+        throwsA(isA<UsageException>()),
+      );
     });
 
     test('unknown flag is rejected', () {
       expect(
         () => parseArgs(['--nope']),
-        throwsA(isA<UsageException>().having((e) => e.message, 'message', contains('--nope'))),
+        throwsA(
+          isA<UsageException>().having(
+            (e) => e.message,
+            'message',
+            contains('--nope'),
+          ),
+        ),
       );
     });
 
     test('--session without value is rejected', () {
       expect(() => parseArgs(['--session']), throwsA(isA<UsageException>()));
+    });
+
+    test('--version is parsed on its own', () {
+      expect(parseArgs(['--version']).showVersion, isTrue);
+      expect(parseArgs([]).showVersion, isFalse);
+    });
+
+    test('--version cannot be combined with session flags', () {
+      expect(
+        () => parseArgs(['--version', '--continue']),
+        throwsA(isA<UsageException>()),
+      );
+      expect(
+        () => parseArgs(['--version', '--session', 'x']),
+        throwsA(isA<UsageException>()),
+      );
     });
   });
 }

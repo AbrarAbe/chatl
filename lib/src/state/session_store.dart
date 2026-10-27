@@ -74,18 +74,24 @@ class DriftSessionStore implements SessionStore {
   /// Sets a session's title (first user message, truncated).
   Future<void> updateTitle(String sessionId, String title) =>
       (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
-        SessionsCompanion(title: Value(title), updatedAt: Value(DateTime.now())),
-      );
-
-  /// Persists a mid-conversation model/persona switch.
-  Future<void> updateProfile(String sessionId, {required String model, required String persona}) =>
-      (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
         SessionsCompanion(
-          model: Value(model),
-          persona: Value(persona),
+          title: Value(title),
           updatedAt: Value(DateTime.now()),
         ),
       );
+
+  /// Persists a mid-conversation model/persona switch.
+  Future<void> updateProfile(
+    String sessionId, {
+    required String model,
+    required String persona,
+  }) => (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
+    SessionsCompanion(
+      model: Value(model),
+      persona: Value(persona),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
 
   Future<Message> getMessage(String id) =>
       (_db.select(_db.messages)..where((m) => m.id.equals(id))).getSingle();
@@ -109,18 +115,23 @@ class DriftSessionStore implements SessionStore {
   }) async {
     final messageId = id ?? _newId();
     final effectiveParent =
-        parentId ?? (linkToHead ? (await getSession(sessionId)).activeHeadId : null);
+        parentId ??
+        (linkToHead ? (await getSession(sessionId)).activeHeadId : null);
     await _db
         .into(_db.messages)
         .insert(
           MessagesCompanion.insert(
             id: messageId,
             sessionId: sessionId,
-            parentId: effectiveParent == null ? const Value.absent() : Value(effectiveParent),
+            parentId: effectiveParent == null
+                ? const Value.absent()
+                : Value(effectiveParent),
             role: role,
             content: content,
             model: model == null ? const Value.absent() : Value(model),
-            promptTokens: promptTokens == null ? const Value.absent() : Value(promptTokens),
+            promptTokens: promptTokens == null
+                ? const Value.absent()
+                : Value(promptTokens),
             completionTokens: completionTokens == null
                 ? const Value.absent()
                 : Value(completionTokens),
@@ -155,8 +166,14 @@ class DriftSessionStore implements SessionStore {
   }
 
   @override
-  Future<Message> forkAt(String sessionId, String messageId, String content) async {
-    final rows = await (_db.select(_db.messages)..where((m) => m.id.equals(messageId))).get();
+  Future<Message> forkAt(
+    String sessionId,
+    String messageId,
+    String content,
+  ) async {
+    final rows = await (_db.select(
+      _db.messages,
+    )..where((m) => m.id.equals(messageId))).get();
     if (rows.isEmpty) {
       throw StateError('no message $messageId in session $sessionId');
     }
@@ -176,8 +193,13 @@ class DriftSessionStore implements SessionStore {
 
   @override
   Future<void> setHead(Session session, String messageId) async {
-    await (_db.update(_db.sessions)..where((s) => s.id.equals(session.id))).write(
-      SessionsCompanion(activeHeadId: Value(messageId), updatedAt: Value(DateTime.now())),
+    await (_db.update(
+      _db.sessions,
+    )..where((s) => s.id.equals(session.id))).write(
+      SessionsCompanion(
+        activeHeadId: Value(messageId),
+        updatedAt: Value(DateTime.now()),
+      ),
     );
   }
 }

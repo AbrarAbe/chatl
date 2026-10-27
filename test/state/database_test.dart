@@ -33,14 +33,18 @@ void main() {
           );
       expect(id, greaterThan(0));
 
-      final row = await (db.select(db.sessions)..where((s) => s.id.equals('s1'))).getSingle();
+      final row = await (db.select(
+        db.sessions,
+      )..where((s) => s.id.equals('s1'))).getSingle();
       expect(row.title, 'test chat');
       expect(row.activeHeadId, isNull);
 
-      await (db.update(
+      await (db.update(db.sessions)..where((s) => s.id.equals('s1'))).write(
+        const SessionsCompanion(activeHeadId: Value('m1')),
+      );
+      final updated = await (db.select(
         db.sessions,
-      )..where((s) => s.id.equals('s1'))).write(const SessionsCompanion(activeHeadId: Value('m1')));
-      final updated = await (db.select(db.sessions)..where((s) => s.id.equals('s1'))).getSingle();
+      )..where((s) => s.id.equals('s1'))).getSingle();
       expect(updated.activeHeadId, 'm1');
     });
 
@@ -86,11 +90,15 @@ void main() {
             ),
           );
 
-      final m1 = await (db.select(db.messages)..where((m) => m.id.equals('m1'))).getSingle();
+      final m1 = await (db.select(
+        db.messages,
+      )..where((m) => m.id.equals('m1'))).getSingle();
       expect(m1.parentId, isNull);
       expect(m1.sources, isNull);
 
-      final m2 = await (db.select(db.messages)..where((m) => m.id.equals('m2'))).getSingle();
+      final m2 = await (db.select(
+        db.messages,
+      )..where((m) => m.id.equals('m2'))).getSingle();
       expect(m2.parentId, 'm1');
       expect(m2.sources, contains('https://x'));
       expect(m2.promptTokens, 3);

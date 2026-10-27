@@ -18,28 +18,34 @@ Config testConfig() => Config(
 
 void main() {
   group('ChatScreen', () {
-    test('submit input → user turn and streamed assistant reply render', () async {
-      final provider = RecordingProvider([
-        const [ChatTextEvent('Hello'), ChatTextEvent('!'), ChatDoneEvent()],
-      ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+    test(
+      'submit input → user turn and streamed assistant reply render',
+      () async {
+        final provider = RecordingProvider([
+          const [ChatTextEvent('Hello'), ChatTextEvent('!'), ChatDoneEvent()],
+        ]);
+        final controller = SessionController(
+          config: testConfig(),
+          providerFor: (_) => provider,
+        );
 
-      await testNocterm('chat', (tester) async {
-        await tester.pumpComponent(ChatScreen(controller: controller));
-        await tester.pump();
+        await testNocterm('chat', (tester) async {
+          await tester.pumpComponent(ChatScreen(controller: controller));
+          await tester.pump();
 
-        // type and submit
-        await tester.enterText('hi there');
-        await tester.sendKey(LogicalKey.enter);
-        for (var i = 0; i < 20; i++) {
-          await tester.pump(const Duration(milliseconds: 50));
-          if (tester.terminalState.containsText('Hello!')) break;
-        }
+          // type and submit
+          await tester.enterText('hi there');
+          await tester.sendKey(LogicalKey.enter);
+          for (var i = 0; i < 20; i++) {
+            await tester.pump(const Duration(milliseconds: 50));
+            if (tester.terminalState.containsText('Hello!')) break;
+          }
 
-        expect(tester.terminalState.containsText('hi there'), isTrue);
-        expect(tester.terminalState.containsText('Hello!'), isTrue);
-      }, size: const Size(80, 24));
-    });
+          expect(tester.terminalState.containsText('hi there'), isTrue);
+          expect(tester.terminalState.containsText('Hello!'), isTrue);
+        }, size: const Size(80, 24));
+      },
+    );
 
     test('any upward scroll releases anchor; bottom re-engages', () async {
       // a long response so the viewport overflows (one word per line)
@@ -47,12 +53,18 @@ void main() {
       final provider = RecordingProvider([
         [ChatTextEvent(longText), const ChatDoneEvent()],
       ]);
-      final controller = SessionController(config: testConfig(), providerFor: (_) => provider);
+      final controller = SessionController(
+        config: testConfig(),
+        providerFor: (_) => provider,
+      );
       ChatScrollController? scroll;
 
       await testNocterm('chat', (tester) async {
         await tester.pumpComponent(
-          ChatScreen(controller: controller, onScrollControllerReady: (c) => scroll = c),
+          ChatScreen(
+            controller: controller,
+            onScrollControllerReady: (c) => scroll = c,
+          ),
         );
         await tester.pump();
 

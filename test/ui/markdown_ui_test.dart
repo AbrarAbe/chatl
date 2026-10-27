@@ -14,7 +14,10 @@ Config configWith({required bool markdown}) => Config(
 );
 
 void main() {
-  Future<void> pumpReply(NoctermTester tester, SessionController controller) async {
+  Future<void> pumpReply(
+    NoctermTester tester,
+    SessionController controller,
+  ) async {
     await tester.pumpComponent(ChatScreen(controller: controller));
     await tester.pump();
     await tester.enterText('q1');
@@ -28,8 +31,10 @@ void main() {
   test('ui.markdown: true renders the assistant reply as markdown', () async {
     final controller = SessionController(
       config: configWith(markdown: true),
-      providerFor: (_) =>
-          const FakeProvider([ChatTextEvent('# heading\n\nsome **bold** words'), ChatDoneEvent()]),
+      providerFor: (_) => const FakeProvider([
+        ChatTextEvent('# heading\n\nsome **bold** words'),
+        ChatDoneEvent(),
+      ]),
     );
 
     await testNocterm('md on', (tester) async {
@@ -45,8 +50,10 @@ void main() {
   test('ui.markdown: false leaves the reply verbatim', () async {
     final controller = SessionController(
       config: configWith(markdown: false),
-      providerFor: (_) =>
-          const FakeProvider([ChatTextEvent('# heading\n\nsome **bold** words'), ChatDoneEvent()]),
+      providerFor: (_) => const FakeProvider([
+        ChatTextEvent('# heading\n\nsome **bold** words'),
+        ChatDoneEvent(),
+      ]),
     );
 
     await testNocterm('md off', (tester) async {

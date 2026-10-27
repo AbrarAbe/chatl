@@ -15,8 +15,12 @@ void main() {
     await db.close();
   });
 
-  Future<Session> makeSession() =>
-      store.createSession(id: 's1', title: 'chat', model: 'gpt-4o', persona: 'default');
+  Future<Session> makeSession() => store.createSession(
+    id: 's1',
+    title: 'chat',
+    model: 'gpt-4o',
+    persona: 'default',
+  );
 
   /// Inserts a linear chain; message ids equal their contents.
   Future<void> chain(List<String> ids) async {
@@ -32,7 +36,9 @@ void main() {
   }
 
   Future<List<String>> branchContent() async =>
-      (await store.activeBranch(await store.getSession('s1'))).map((m) => m.content).toList();
+      (await store.activeBranch(await store.getSession('s1')))
+          .map((m) => m.content)
+          .toList();
 
   group('DriftSessionStore (spec §Seams)', () {
     test('activeBranch of a fresh session is empty', () async {
@@ -73,7 +79,12 @@ void main() {
       await chain(['a', 'b']);
 
       final f1 = await store.forkAt('s1', 'b', 'b2');
-      await store.appendMessage(sessionId: 's1', parentId: f1.id, role: 'assistant', content: 'c2');
+      await store.appendMessage(
+        sessionId: 's1',
+        parentId: f1.id,
+        role: 'assistant',
+        content: 'c2',
+      );
       final f2 = await store.forkAt('s1', f1.id, 'b3');
       await store.setHead(session, f2.id);
 
