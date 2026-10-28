@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:chatl/src/cli/args.dart';
 import 'package:chatl/src/config/config.dart';
+import 'package:chatl/src/resolve/fetch.dart';
 import 'package:chatl/src/resolve/resolver.dart';
 import 'package:chatl/src/resolve/search.dart';
 import 'package:chatl/src/resolve/search_backend.dart';
@@ -79,6 +80,11 @@ Future<void> main(List<String> argv) async {
       searchResolver: SearchResolver(
         backend: config.search.backend.isNotEmpty
             ? ShellSearchBackend(command: config.search.backend)
+            : null,
+      ),
+      fetchResolver: FetchResolver(
+        backend: config.fetch.reader.isNotEmpty
+            ? ShellFetchBackend(reader: config.fetch.reader)
             : null,
       ),
     );

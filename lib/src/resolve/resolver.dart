@@ -5,6 +5,7 @@
 /// the syntax and cannot learn or misuse it.
 library;
 
+import 'fetch.dart';
 import 'search.dart';
 
 /// One piece of attached context, rendered as a `[CONTEXT …]` block.
@@ -25,11 +26,7 @@ class ResolveFailure {
 
 /// The outcome of resolving one input line.
 class ResolveResult {
-  const ResolveResult({
-    required this.requestContent,
-    required this.blocks,
-    required this.failures,
-  });
+  const ResolveResult({required this.requestContent, required this.blocks, required this.failures});
 
   /// What actually goes to the provider: rendered blocks followed by
   /// `Q: <leftover text>`. Never contains `@` syntax.
@@ -41,11 +38,7 @@ class ResolveResult {
 
 /// One resolver entry: a reserved `@` name and its resolution function.
 class ResolverEntry {
-  const ResolverEntry({
-    required this.name,
-    required this.resolve,
-    this.takesArgument = false,
-  });
+  const ResolverEntry({required this.name, required this.resolve, this.takesArgument = false});
 
   final String name;
 
@@ -67,10 +60,15 @@ class MentionResolver {
   /// If [searchResolver] is provided, `@search <query>` mentions are delegated
   /// to it. If no backend is configured on the search resolver, `@search`
   /// mentions fail visibly.
-  const MentionResolver({this.entries = const [], this.searchResolver});
+  ///
+  /// If [fetchResolver] is provided, `@fetch <url>` mentions are delegated
+  /// to it. If no backend is configured on the fetch resolver, `@fetch`
+  /// mentions fail visibly.
+  const MentionResolver({this.entries = const [], this.searchResolver, this.fetchResolver});
 
   final List<ResolverEntry> entries;
   final SearchResolver? searchResolver;
+  final FetchResolver? fetchResolver;
 
   /// A mention is `@` at line start or after whitespace, followed by a
   /// `[A-Za-z0-9_-]` name — so `a@b.com` is never a mention.
@@ -108,9 +106,34 @@ class MentionResolver {
 
         final source = argument == null ? 'search' : 'search:$argument';
         try {
-          expansions.addAll(
-            await _resolveSearch(searchResolver!, argument ?? '', source),
-          );
+          expansions.addAll(await _resolveSearch(searchResolver!, argument ?? '', source));
+        } catch (e) {
+          expansions.add(_Expansion(source, null, '$e'));
+        }
+        continue;
+      }
+
+      // If this is an @fetch mention and we have a fetch resolver,
+      // delegate to it. Otherwise use the registered resolver entry.
+      if (match.group(1) == 'fetch' && fetchResolver != null) {
+        leftovers.write(input.substring(cursor, match.start));
+        cursor = match.end;
+
+        String? argument;
+        if (entry != null && entry.takesArgument) {
+          final rest = input.substring(cursor);
+          final trimmed = rest.trimLeft();
+          final gap = rest.length - trimmed.length;
+          final token = RegExp(r'^\S+').firstMatch(trimmed);
+          if (token != null) {
+            argument = token.group(0);
+            cursor += gap + token.end;
+          }
+        }
+
+        final source = argument == null ? 'fetch' : 'fetch:$argument';
+        try {
+          expansions.addAll(await _resolveFetch(fetchResolver!, argument ?? '', source));
         } catch (e) {
           expansions.add(_Expansion(source, null, '$e'));
         }
@@ -146,11 +169,7 @@ class MentionResolver {
 
     if (expansions.isEmpty) {
       // pure passthrough: byte-for-byte identical to the input
-      return ResolveResult(
-        requestContent: input,
-        blocks: const [],
-        failures: const [],
-      );
+      return ResolveResult(requestContent: input, blocks: const [], failures: const []);
     }
 
     leftovers.write(input.substring(cursor));
@@ -161,9 +180,7 @@ class MentionResolver {
     final failures = <ResolveFailure>[];
     for (final expansion in expansions) {
       if (expansion.failure != null) {
-        failures.add(
-          ResolveFailure(source: expansion.source, message: expansion.failure!),
-        );
+        failures.add(ResolveFailure(source: expansion.source, message: expansion.failure!));
         rendered.writeln(
           '[CONTEXT ERROR source="${expansion.source}"]${expansion.failure}[/CONTEXT]',
         );
@@ -206,11 +223,24 @@ class MentionResolver {
     return blocks;
   }
 
-  String _cleanup(String text) => text
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim()
-      .replaceFirst(RegExp(r'^[—–-]\s*'), '')
-      .trim();
+  Future<List<_Expansion>> _resolveFetch(
+    FetchResolver fetchResolver,
+    String argument,
+    String source,
+  ) async {
+    final result = await fetchResolver.resolve(argument);
+    final blocks = <_Expansion>[];
+    for (final block in result.blocks) {
+      blocks.add(_Expansion(source, block));
+    }
+    for (final failure in result.failures) {
+      blocks.add(_Expansion(source, null, failure.message));
+    }
+    return blocks;
+  }
+
+  String _cleanup(String text) =>
+      text.replaceAll(RegExp(r'\s+'), ' ').trim().replaceFirst(RegExp(r'^[—–-]\s*'), '').trim();
 }
 
 class _Expansion {

@@ -49,6 +49,14 @@ class SearchConfig {
   final bool citations;
 }
 
+/// One entry under `fetch:`.
+class FetchConfig {
+  const FetchConfig({required this.reader, this.results = 5});
+
+  final String reader;
+  final int results;
+}
+
 /// Validated chatl configuration (spec §Config Surface).
 class Config {
   Config({
@@ -58,6 +66,7 @@ class Config {
     required this.commands,
     required this.warnings,
     required this.search,
+    this.fetch = const FetchConfig(reader: '', results: 5),
   });
 
   final Map<String, ModelProfile> models;
@@ -65,11 +74,12 @@ class Config {
   final UiConfig ui;
   final List<SlashCommand> commands;
   final SearchConfig search;
+  final FetchConfig fetch;
 
   /// Non-fatal problems: missing file, unknown keys, unset `$ENV` vars.
   final List<String> warnings;
 
-  static const _knownTopLevel = {'models', 'persona', 'ui', 'commands', 'search'};
+  static const _knownTopLevel = {'models', 'persona', 'ui', 'commands', 'search', 'fetch'};
 
   static final _envPattern = RegExp(r'\$(\w+)|\$\{(\w+)\}');
 
@@ -119,6 +129,7 @@ class Config {
       ui: _parseUi(root['ui'], configPath),
       commands: _parseCommands(root['commands'], configPath),
       search: _parseSearch(root['search'], configPath),
+      fetch: _parseFetch(root['fetch'], configPath),
       warnings: warnings,
     );
   }
@@ -129,6 +140,7 @@ class Config {
     ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
     commands: const [],
     search: const SearchConfig(backend: '', results: 5, citations: true),
+    fetch: const FetchConfig(reader: '', results: 5),
     warnings: [],
   );
 
@@ -356,5 +368,32 @@ class Config {
     }
 
     return SearchConfig(backend: backend, results: results, citations: citations);
+  }
+
+  static FetchConfig _parseFetch(YamlNode? node, String path) {
+    if (node == null) return const FetchConfig(reader: '', results: 5);
+    if (node is! YamlMap) {
+      throw ConfigException('$path: fetch must be a mapping');
+    }
+
+    final readerNode = node['reader'];
+    final reader = readerNode is String ? readerNode : '';
+    if (readerNode != null && readerNode is! String) {
+      throw ConfigException('$path: fetch.reader must be a string');
+    }
+
+    final resultsNode = node['results'];
+    int results = 5;
+    if (resultsNode != null) {
+      if (resultsNode is! int) {
+        throw ConfigException(
+          '$path: fetch.results must be an integer '
+          '(line ${resultsNode.span.start.line + 1})',
+        );
+      }
+      results = resultsNode;
+    }
+
+    return FetchConfig(reader: reader, results: results);
   }
 }
