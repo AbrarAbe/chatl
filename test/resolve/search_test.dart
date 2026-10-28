@@ -34,6 +34,23 @@ void main() {
       expect(result.requestContent, contains('Result 2'));
       expect(result.requestContent, contains('[/CONTEXT]'));
     });
+
+    test('truncates oversized result with visible notice', () async {
+      final longSnippet = 'x' * 200_000;
+      final resolver = SearchResolver(
+        backend: FakeSearchBackend(
+          results: [
+            SearchResult(title: 'Result 1', url: 'https://example.com/1', snippet: longSnippet),
+          ],
+        ),
+        maxBytes: 100,
+      );
+      final result = await resolver.resolve('test query');
+      expect(result.requestContent, contains('[... truncated:'));
+      expect(result.requestContent, contains('bytes over cap'));
+      // the truncated body must not contain the full snippet
+      expect(result.requestContent, isNot(contains(longSnippet)));
+    });
   });
 }
 

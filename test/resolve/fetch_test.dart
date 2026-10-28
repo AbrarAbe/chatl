@@ -31,6 +31,20 @@ void main() {
       expect(result.requestContent, contains('[CONTEXT ERROR source=fetch'));
       expect(result.requestContent, contains('reader crashed'));
     });
+
+    test('truncates oversized content with visible notice', () async {
+      final longBody = 'y' * 200_000;
+      final resolver = FetchResolver(
+        backend: FakeFetchBackend(
+          result: FetchResult(url: 'https://example.com', body: longBody),
+        ),
+        maxBytes: 100,
+      );
+      final result = await resolver.resolve('https://example.com');
+      expect(result.requestContent, contains('[... truncated:'));
+      expect(result.requestContent, contains('bytes over cap'));
+      expect(result.requestContent, isNot(contains(longBody)));
+    });
   });
 }
 

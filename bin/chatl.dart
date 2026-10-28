@@ -81,11 +81,13 @@ Future<void> main(List<String> argv) async {
         backend: config.search.backend.isNotEmpty
             ? ShellSearchBackend(command: config.search.backend)
             : null,
+        maxBytes: config.search.maxBytes,
       ),
       fetchResolver: FetchResolver(
         backend: config.fetch.reader.isNotEmpty
             ? ShellFetchBackend(reader: config.fetch.reader)
             : null,
+        maxBytes: config.fetch.maxBytes,
       ),
     );
     final controller = SessionController.resume(

@@ -11,11 +11,7 @@ import 'resolver.dart';
 
 /// A search result: title, URL, and snippet text.
 class SearchResult {
-  const SearchResult({
-    required this.title,
-    required this.url,
-    required this.snippet,
-  });
+  const SearchResult({required this.title, required this.url, required this.snippet});
 
   final String title;
   final String url;
@@ -33,9 +29,13 @@ class SearchResolver {
   /// Creates a resolver with an optional backend.
   ///
   /// If [_backend] is null, all searches fail visibly.
-  const SearchResolver({this._backend});
+  ///
+  /// [maxBytes] caps each result body; over-cap content is truncated with a
+  /// visible notice, never silently dropped (spec §Decisions).
+  const SearchResolver({this._backend, this.maxBytes = _kDefaultMaxBytes});
 
   final SearchBackend? _backend;
+  final int maxBytes;
 
   /// Resolves `@search <query>` into `[CONTEXT ...]` blocks plus `Q: ...`.
   ///
@@ -48,12 +48,7 @@ class SearchResolver {
         requestContent:
             '[CONTEXT ERROR source=search]no search backend configured[/CONTEXT]\nQ: $query',
         blocks: const [],
-        failures: [
-          ResolveFailure(
-            source: 'search',
-            message: 'no search backend configured',
-          ),
-        ],
+        failures: [ResolveFailure(source: 'search', message: 'no search backend configured')],
       );
     }
 
@@ -61,12 +56,11 @@ class SearchResolver {
 
     final blocks = <ContextBlock>[];
     for (final result in results) {
-      blocks.add(
-        ContextBlock(
-          source: 'search',
-          body: '${result.title}\n${result.url}\n${result.snippet}',
-        ),
+      final body = truncateWithNotice(
+        '${result.title}\n${result.url}\n${result.snippet}',
+        maxBytes,
       );
+      blocks.add(ContextBlock(source: 'search', body: body));
     }
 
     return ResolveResult(
@@ -79,13 +73,17 @@ class SearchResolver {
   String _buildRequestContent(List<SearchResult> results, String query) {
     final buf = StringBuffer();
     for (final result in results) {
+      final body = truncateWithNotice(
+        '${result.title}\n${result.url}\n${result.snippet}',
+        maxBytes,
+      );
       buf.writeln('[CONTEXT source="search"]');
-      buf.writeln(result.title);
-      buf.writeln(result.url);
-      buf.writeln(result.snippet);
+      buf.writeln(body);
       buf.writeln('[/CONTEXT]');
     }
     buf.writeln('Q: $query');
     return buf.toString().trimRight();
   }
 }
+
+const int _kDefaultMaxBytes = 100 * 1024;

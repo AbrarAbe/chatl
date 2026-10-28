@@ -5,6 +5,8 @@
 /// the syntax and cannot learn or misuse it.
 library;
 
+import 'dart:convert';
+
 import 'fetch.dart';
 import 'search.dart';
 
@@ -249,4 +251,16 @@ class _Expansion {
   final String source;
   final ContextBlock? block;
   final String? failure;
+}
+
+/// Truncates [body] to [maxBytes] UTF-8 bytes, appending a visible notice
+/// when truncation occurs. Never silently drops content.
+String truncateWithNotice(String body, int maxBytes) {
+  final bytes = utf8.encode(body);
+  if (bytes.length <= maxBytes) return body;
+
+  // Decode back up to the cap boundary to avoid splitting a multi-byte char.
+  final truncated = utf8.decode(bytes.sublist(0, maxBytes));
+  final over = bytes.length - maxBytes;
+  return '$truncated\n[... truncated: $over bytes over cap ...]';
 }

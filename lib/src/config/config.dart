@@ -14,6 +14,9 @@ class ConfigException implements Exception {
   String toString() => 'ConfigException: $message';
 }
 
+/// Default per-resolver context block size cap (100 KB).
+const int _kDefaultMaxBytes = 100 * 1024;
+
 /// One entry under `models:`.
 class ModelProfile {
   const ModelProfile({required this.model, this.baseUrl, this.apiKey});
@@ -42,19 +45,26 @@ class UiConfig {
 
 /// One entry under `search:`.
 class SearchConfig {
-  const SearchConfig({required this.backend, required this.results, this.citations = true});
+  const SearchConfig({
+    required this.backend,
+    required this.results,
+    this.citations = true,
+    this.maxBytes = _kDefaultMaxBytes,
+  });
 
   final String backend;
   final int results;
   final bool citations;
+  final int maxBytes;
 }
 
 /// One entry under `fetch:`.
 class FetchConfig {
-  const FetchConfig({required this.reader, this.results = 5});
+  const FetchConfig({required this.reader, this.results = 5, this.maxBytes = _kDefaultMaxBytes});
 
   final String reader;
   final int results;
+  final int maxBytes;
 }
 
 /// Validated chatl configuration (spec §Config Surface).
@@ -367,7 +377,25 @@ class Config {
       citations = citationsValue;
     }
 
-    return SearchConfig(backend: backend, results: results, citations: citations);
+    final maxBytesNode = node.nodes['max_bytes'];
+    int maxBytes = _kDefaultMaxBytes;
+    if (maxBytesNode != null) {
+      final maxBytesValue = maxBytesNode.value;
+      if (maxBytesValue is! int) {
+        throw ConfigException(
+          '$path: search.max_bytes must be an integer '
+          '(line ${maxBytesNode.span.start.line + 1})',
+        );
+      }
+      maxBytes = maxBytesValue;
+    }
+
+    return SearchConfig(
+      backend: backend,
+      results: results,
+      citations: citations,
+      maxBytes: maxBytes,
+    );
   }
 
   static FetchConfig _parseFetch(YamlNode? node, String path) {
@@ -394,6 +422,19 @@ class Config {
       results = resultsNode;
     }
 
-    return FetchConfig(reader: reader, results: results);
+    final maxBytesNode = node.nodes['max_bytes'];
+    int maxBytes = _kDefaultMaxBytes;
+    if (maxBytesNode != null) {
+      final maxBytesValue = maxBytesNode.value;
+      if (maxBytesValue is! int) {
+        throw ConfigException(
+          '$path: fetch.max_bytes must be an integer '
+          '(line ${maxBytesNode.span.start.line + 1})',
+        );
+      }
+      maxBytes = maxBytesValue;
+    }
+
+    return FetchConfig(reader: reader, results: results, maxBytes: maxBytes);
   }
 }

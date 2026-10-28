@@ -62,9 +62,13 @@ class FetchResolver {
   /// Creates a resolver with an optional backend.
   ///
   /// If [_backend] is null, all fetches fail visibly.
-  const FetchResolver({this._backend});
+  ///
+  /// [maxBytes] caps the result body; over-cap content is truncated with a
+  /// visible notice, never silently dropped (spec §Decisions).
+  const FetchResolver({this._backend, this.maxBytes = _kDefaultMaxBytes});
 
   final FetchBackend? _backend;
+  final int maxBytes;
 
   /// Resolves `@fetch <url>` into `[CONTEXT ...]` blocks plus `Q: ...`.
   ///
@@ -92,8 +96,10 @@ class FetchResolver {
       );
     }
 
+    final body = truncateWithNotice(result.body, maxBytes);
+
     final blocks = <ContextBlock>[];
-    blocks.add(ContextBlock(source: url, body: result.body));
+    blocks.add(ContextBlock(source: url, body: body));
 
     return ResolveResult(
       requestContent: _buildRequestContent(result, url),
@@ -105,9 +111,11 @@ class FetchResolver {
   String _buildRequestContent(FetchResult result, String url) {
     final buf = StringBuffer();
     buf.writeln('[CONTEXT source="$url"]');
-    buf.writeln(result.body);
+    buf.writeln(truncateWithNotice(result.body, maxBytes));
     buf.writeln('[/CONTEXT]');
     buf.writeln('Q: $url');
     return buf.toString().trimRight();
   }
 }
+
+const int _kDefaultMaxBytes = 100 * 1024;
