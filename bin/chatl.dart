@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:chatl/src/cli/args.dart';
 import 'package:chatl/src/config/config.dart';
+import 'package:chatl/src/resolve/fetch.dart';
 import 'package:chatl/src/resolve/resolver.dart';
 import 'package:chatl/src/resolve/search.dart';
+import 'package:chatl/src/resolve/search_backend.dart';
 import 'package:chatl/src/session/session_controller.dart';
 import 'package:chatl/src/state/database.dart';
 import 'package:chatl/src/state/session_store.dart';
@@ -73,16 +75,27 @@ Future<void> main(List<String> argv) async {
   );
 
   Future<SessionController> controllerFor(Session s) async {
+    final resolver = MentionResolver(
+      entries: const [],
+      searchResolver: SearchResolver(
+        backend: config.search.backend.isNotEmpty
+            ? ShellSearchBackend(command: config.search.backend)
+            : null,
+        maxBytes: config.search.maxBytes,
+      ),
+      fetchResolver: FetchResolver(
+        backend: config.fetch.reader.isNotEmpty
+            ? ShellFetchBackend(reader: config.fetch.reader)
+            : null,
+        maxBytes: config.fetch.maxBytes,
+      ),
+    );
     final controller = SessionController.resume(
       config: config,
       providerFor: providerForProfile,
       store: store,
       session: s,
-      resolver: MentionResolver(
-        entries: const [],
-        searchResolver:
-            SearchResolver(), // v1: no backend → searches fail visibly
-      ),
+      resolver: resolver,
     );
     await controller.ready;
     return controller;
@@ -92,8 +105,7 @@ Future<void> main(List<String> argv) async {
   final controller = await controllerFor(session);
 
   // `/new`: fresh persisted session, same config/store (spec §MVP Scope).
-  Future<SessionController> newSession() async =>
-      controllerFor(await createPersistedSession());
+  Future<SessionController> newSession() async => controllerFor(await createPersistedSession());
 
   await runApp(ChatlApp(controller: controller, newSession: newSession));
   await db.close();

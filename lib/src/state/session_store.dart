@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:drift/drift.dart';
@@ -74,24 +75,18 @@ class DriftSessionStore implements SessionStore {
   /// Sets a session's title (first user message, truncated).
   Future<void> updateTitle(String sessionId, String title) =>
       (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
-        SessionsCompanion(
-          title: Value(title),
-          updatedAt: Value(DateTime.now()),
-        ),
+        SessionsCompanion(title: Value(title), updatedAt: Value(DateTime.now())),
       );
 
   /// Persists a mid-conversation model/persona switch.
-  Future<void> updateProfile(
-    String sessionId, {
-    required String model,
-    required String persona,
-  }) => (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
-    SessionsCompanion(
-      model: Value(model),
-      persona: Value(persona),
-      updatedAt: Value(DateTime.now()),
-    ),
-  );
+  Future<void> updateProfile(String sessionId, {required String model, required String persona}) =>
+      (_db.update(_db.sessions)..where((s) => s.id.equals(sessionId))).write(
+        SessionsCompanion(
+          model: Value(model),
+          persona: Value(persona),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
 
   Future<Message> getMessage(String id) =>
       (_db.select(_db.messages)..where((m) => m.id.equals(id))).getSingle();
@@ -100,7 +95,8 @@ class DriftSessionStore implements SessionStore {
   /// the message links to the session's current head; [linkToHead] false with
   /// a null [parentId] means a root message (forkAt's root case). Unless
   /// [advanceHead] is false (forkAt's case), the new message becomes the
-  /// session's active head.
+  /// session's active head. [sources] is optional JSON citation data from
+  /// @search / @fetch resolvers, written to `messages.sources`.
   Future<Message> appendMessage({
     String? id,
     required String sessionId,
@@ -112,29 +108,26 @@ class DriftSessionStore implements SessionStore {
     String? model,
     int? promptTokens,
     int? completionTokens,
+    List<Map<String, String>>? sources,
   }) async {
     final messageId = id ?? _newId();
     final effectiveParent =
-        parentId ??
-        (linkToHead ? (await getSession(sessionId)).activeHeadId : null);
+        parentId ?? (linkToHead ? (await getSession(sessionId)).activeHeadId : null);
     await _db
         .into(_db.messages)
         .insert(
           MessagesCompanion.insert(
             id: messageId,
             sessionId: sessionId,
-            parentId: effectiveParent == null
-                ? const Value.absent()
-                : Value(effectiveParent),
+            parentId: effectiveParent == null ? const Value.absent() : Value(effectiveParent),
             role: role,
             content: content,
             model: model == null ? const Value.absent() : Value(model),
-            promptTokens: promptTokens == null
-                ? const Value.absent()
-                : Value(promptTokens),
+            promptTokens: promptTokens == null ? const Value.absent() : Value(promptTokens),
             completionTokens: completionTokens == null
                 ? const Value.absent()
                 : Value(completionTokens),
+            sources: sources == null ? const Value.absent() : Value(jsonEncode(sources)),
             createdAt: DateTime.now(),
           ),
         );
@@ -166,14 +159,8 @@ class DriftSessionStore implements SessionStore {
   }
 
   @override
-  Future<Message> forkAt(
-    String sessionId,
-    String messageId,
-    String content,
-  ) async {
-    final rows = await (_db.select(
-      _db.messages,
-    )..where((m) => m.id.equals(messageId))).get();
+  Future<Message> forkAt(String sessionId, String messageId, String content) async {
+    final rows = await (_db.select(_db.messages)..where((m) => m.id.equals(messageId))).get();
     if (rows.isEmpty) {
       throw StateError('no message $messageId in session $sessionId');
     }
@@ -188,18 +175,20 @@ class DriftSessionStore implements SessionStore {
       model: original.model,
       promptTokens: original.promptTokens,
       completionTokens: original.completionTokens,
+      sources: original.sources == null ? null : _decodeSources(original.sources!),
     );
+  }
+
+  /// Decodes the JSON sources string stored in the database.
+  static List<Map<String, String>> _decodeSources(String json) {
+    final List<dynamic> decoded = jsonDecode(json);
+    return decoded.cast<Map<String, dynamic>>().cast<Map<String, String>>();
   }
 
   @override
   Future<void> setHead(Session session, String messageId) async {
-    await (_db.update(
-      _db.sessions,
-    )..where((s) => s.id.equals(session.id))).write(
-      SessionsCompanion(
-        activeHeadId: Value(messageId),
-        updatedAt: Value(DateTime.now()),
-      ),
+    await (_db.update(_db.sessions)..where((s) => s.id.equals(session.id))).write(
+      SessionsCompanion(activeHeadId: Value(messageId), updatedAt: Value(DateTime.now())),
     );
   }
 }

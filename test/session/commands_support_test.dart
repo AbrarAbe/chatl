@@ -5,15 +5,29 @@ import 'package:chatl/src/state/database.dart';
 import 'package:chatl/src/state/session_store.dart';
 import 'package:test/test.dart';
 
-import 'session_controller_test.dart' show RecordingProvider;
-
 Config testConfig() => Config(
   models: const {'default': ModelProfile(model: 'gpt-4o')},
   personas: const {'default': 'Terse.'},
   ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
   commands: const [],
+  search: const SearchConfig(backend: '', results: 5, citations: true),
   warnings: const [],
 );
+
+/// Fake provider for testing.
+class RecordingProvider implements Provider {
+  final List<List<ChatEvent>> scripts;
+  final List<StreamRequest> requests = [];
+  var _call = 0;
+
+  RecordingProvider(this.scripts);
+
+  @override
+  Stream<ChatEvent> chat(StreamRequest request) {
+    requests.add(request);
+    return Stream.fromIterable(scripts[_call++]);
+  }
+}
 
 void main() {
   late ChatlDatabase db;
@@ -74,14 +88,8 @@ void main() {
 
     test('token usage accumulates when the provider reports it', () async {
       final provider = RecordingProvider([
-        const [
-          ChatTextEvent('a'),
-          ChatDoneEvent(promptTokens: 3, completionTokens: 5),
-        ],
-        const [
-          ChatTextEvent('b'),
-          ChatDoneEvent(promptTokens: 7, completionTokens: 11),
-        ],
+        const [ChatTextEvent('a'), ChatDoneEvent(promptTokens: 3, completionTokens: 5)],
+        const [ChatTextEvent('b'), ChatDoneEvent(promptTokens: 7, completionTokens: 11)],
       ]);
       final controller = await persisted(provider);
 
