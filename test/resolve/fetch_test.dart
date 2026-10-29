@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:chatl/src/resolve/fetch.dart';
+import 'package:chatl/src/resolve/firecrawl_fetch.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -44,6 +49,76 @@ void main() {
       expect(result.requestContent, contains('[... truncated:'));
       expect(result.requestContent, contains('bytes over cap'));
       expect(result.requestContent, isNot(contains(longBody)));
+    });
+  });
+
+  group('FirecrawlFetchBackend', () {
+    test('extracts markdown from successful scrape response', () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, '/v0/scrape');
+        expect(request.headers['authorization'], 'Bearer test-key');
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {'markdown': '# Example\n\nSome content here.'},
+          }),
+          200,
+        );
+      });
+
+      final backend = FirecrawlFetchBackend(apiKey: 'test-key', client: client);
+      final result = await backend.fetch('https://example.com');
+
+      expect(result.url, 'https://example.com');
+      expect(result.body, '# Example\n\nSome content here.');
+    });
+
+    test('throws on non-2xx response', () async {
+      final client = MockClient((request) async {
+        return http.Response(jsonEncode({'success': false, 'error': 'rate limited'}), 429);
+      });
+
+      final backend = FirecrawlFetchBackend(apiKey: 'test-key', client: client);
+      expect(
+        () async => backend.fetch('https://example.com'),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('Firecrawl scrape failed'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when success is false', () async {
+      final client = MockClient((request) async {
+        return http.Response(jsonEncode({'success': false, 'error': 'invalid URL'}), 200);
+      });
+
+      final backend = FirecrawlFetchBackend(apiKey: 'test-key', client: client);
+      expect(
+        () async => backend.fetch('https://example.com'),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('Firecrawl scrape failed'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when no markdown returned', () async {
+      final client = MockClient((request) async {
+        return http.Response(jsonEncode({'success': true, 'data': {}}), 200);
+      });
+
+      final backend = FirecrawlFetchBackend(apiKey: 'test-key', client: client);
+      expect(
+        () async => backend.fetch('https://example.com'),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('no markdown'))),
+      );
     });
   });
 }

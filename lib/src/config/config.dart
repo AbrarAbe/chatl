@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -60,9 +61,20 @@ class SearchConfig {
 
 /// One entry under `fetch:`.
 class FetchConfig {
-  const FetchConfig({required this.reader, this.results = 5, this.maxBytes = _kDefaultMaxBytes});
+  const FetchConfig({
+    required this.type,
+    required this.reader,
+    this.apiKey,
+    this.baseUrl,
+    this.results = 5,
+    this.maxBytes = _kDefaultMaxBytes,
+  });
 
+  /// Backend type: `shell` (default) or `firecrawl`.
+  final String type;
   final String reader;
+  final String? apiKey;
+  final String? baseUrl;
   final int results;
   final int maxBytes;
 }
@@ -76,7 +88,7 @@ class Config {
     required this.commands,
     required this.warnings,
     required this.search,
-    this.fetch = const FetchConfig(reader: '', results: 5),
+    this.fetch = const FetchConfig(type: 'shell', reader: '', results: 5),
   });
 
   final Map<String, ModelProfile> models;
@@ -150,7 +162,7 @@ class Config {
     ui: const UiConfig(theme: 'dark', promptPrefix: '❯', markdown: true),
     commands: const [],
     search: const SearchConfig(backend: '', results: 5, citations: true),
-    fetch: const FetchConfig(reader: '', results: 5),
+    fetch: const FetchConfig(type: 'shell', reader: '', results: 5),
     warnings: [],
   );
 
@@ -399,15 +411,45 @@ class Config {
   }
 
   static FetchConfig _parseFetch(YamlNode? node, String path) {
-    if (node == null) return const FetchConfig(reader: '', results: 5);
+    if (node == null) return const FetchConfig(type: 'shell', reader: '', results: 5);
     if (node is! YamlMap) {
       throw ConfigException('$path: fetch must be a mapping');
+    }
+
+    final typeNode = node['type'];
+    final type = typeNode is String ? typeNode : 'shell';
+    if (typeNode != null && typeNode is! String) {
+      throw ConfigException('$path: fetch.type must be a string');
+    }
+    if (type != 'shell' && type != 'firecrawl') {
+      throw ConfigException('$path: fetch.type must be "shell" or "firecrawl"');
     }
 
     final readerNode = node['reader'];
     final reader = readerNode is String ? readerNode : '';
     if (readerNode != null && readerNode is! String) {
       throw ConfigException('$path: fetch.reader must be a string');
+    }
+
+    final apiKeyNode = node.nodes['api_key'];
+    String? apiKey;
+    if (apiKeyNode != null) {
+      if (apiKeyNode.value is! String) {
+        throw ConfigException('$path: fetch.api_key must be a string');
+      }
+      apiKey = apiKeyNode.value as String;
+    }
+
+    final baseUrlNode = node.nodes['base_url'];
+    String? baseUrl;
+    if (baseUrlNode != null) {
+      if (baseUrlNode.value is! String) {
+        throw ConfigException('$path: fetch.base_url must be a string');
+      }
+      baseUrl = baseUrlNode.value as String;
+      if (Uri.tryParse(baseUrl) == null) {
+        throw ConfigException('$path: fetch.base_url is not a valid URL');
+      }
     }
 
     final resultsNode = node['results'];
@@ -435,6 +477,25 @@ class Config {
       maxBytes = maxBytesValue;
     }
 
-    return FetchConfig(reader: reader, results: results, maxBytes: maxBytes);
+    return FetchConfig(
+      type: type,
+      reader: reader,
+      apiKey: apiKey,
+      baseUrl: baseUrl,
+      results: results,
+      maxBytes: maxBytes,
+    );
   }
+}
+
+/// Truncates [body] to [maxBytes] UTF-8 bytes, appending a visible notice
+/// when truncation occurs. Never silently drops content.
+String truncateWithNotice(String body, int maxBytes) {
+  final bytes = utf8.encode(body);
+  if (bytes.length <= maxBytes) return body;
+
+  // Decode back up to the cap boundary to avoid splitting a multi-byte char.
+  final truncated = utf8.decode(bytes.sublist(0, maxBytes));
+  final over = bytes.length - maxBytes;
+  return '$truncated\n[... truncated: $over bytes over cap ...]';
 }

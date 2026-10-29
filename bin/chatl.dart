@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:chatl/src/cli/args.dart';
 import 'package:chatl/src/config/config.dart';
 import 'package:chatl/src/resolve/fetch.dart';
+import 'package:chatl/src/resolve/firecrawl_fetch.dart';
 import 'package:chatl/src/resolve/resolver.dart';
 import 'package:chatl/src/resolve/search.dart';
 import 'package:chatl/src/resolve/search_backend.dart';
@@ -75,6 +76,13 @@ Future<void> main(List<String> argv) async {
   );
 
   Future<SessionController> controllerFor(Session s) async {
+    final fetchBackend = switch (config.fetch.type) {
+      'firecrawl' =>
+        config.fetch.apiKey == null || config.fetch.apiKey!.isEmpty
+            ? null
+            : FirecrawlFetchBackend(apiKey: config.fetch.apiKey!, baseUrl: config.fetch.baseUrl),
+      _ => config.fetch.reader.isNotEmpty ? ShellFetchBackend(reader: config.fetch.reader) : null,
+    };
     final resolver = MentionResolver(
       entries: const [],
       searchResolver: SearchResolver(
@@ -83,12 +91,7 @@ Future<void> main(List<String> argv) async {
             : null,
         maxBytes: config.search.maxBytes,
       ),
-      fetchResolver: FetchResolver(
-        backend: config.fetch.reader.isNotEmpty
-            ? ShellFetchBackend(reader: config.fetch.reader)
-            : null,
-        maxBytes: config.fetch.maxBytes,
-      ),
+      fetchResolver: FetchResolver(backend: fetchBackend, maxBytes: config.fetch.maxBytes),
     );
     final controller = SessionController.resume(
       config: config,
