@@ -105,6 +105,9 @@ class FetchResolver {
       requestContent: _buildRequestContent(result, url),
       blocks: List.unmodifiable(blocks),
       failures: const [],
+      sources: [
+        {'url': url, 'title': result.body.isNotEmpty ? result.body.split('\n').first : url},
+      ],
     );
   }
 

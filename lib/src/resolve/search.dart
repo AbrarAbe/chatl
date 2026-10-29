@@ -55,18 +55,21 @@ class SearchResolver {
     final results = await _backend.search(query);
 
     final blocks = <ContextBlock>[];
+    final sources = <Map<String, String>>[];
     for (final result in results) {
       final body = truncateWithNotice(
         '${result.title}\n${result.url}\n${result.snippet}',
         maxBytes,
       );
       blocks.add(ContextBlock(source: 'search', body: body));
+      sources.add({'url': result.url, 'title': result.title});
     }
 
     return ResolveResult(
       requestContent: _buildRequestContent(results, query),
       blocks: List.unmodifiable(blocks),
       failures: const [],
+      sources: sources,
     );
   }
 

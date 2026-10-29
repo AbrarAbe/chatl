@@ -28,7 +28,12 @@ class ResolveFailure {
 
 /// The outcome of resolving one input line.
 class ResolveResult {
-  const ResolveResult({required this.requestContent, required this.blocks, required this.failures});
+  const ResolveResult({
+    required this.requestContent,
+    required this.blocks,
+    required this.failures,
+    this.sources = const [],
+  });
 
   /// What actually goes to the provider: rendered blocks followed by
   /// `Q: <leftover text>`. Never contains `@` syntax.
@@ -36,6 +41,10 @@ class ResolveResult {
 
   final List<ContextBlock> blocks;
   final List<ResolveFailure> failures;
+
+  /// Citation sources: `[{url, title}]` pairs from @search / @fetch results,
+  /// written to `messages.sources` on persist.
+  final List<Map<String, String>> sources;
 }
 
 /// One resolver entry: a reserved `@` name and its resolution function.
@@ -83,63 +92,72 @@ class MentionResolver {
     final expansions = <_Expansion>[];
     final leftovers = StringBuffer();
     var cursor = 0;
+    final sources = <Map<String, String>>[];
 
     for (final match in _mentionPattern.allMatches(input)) {
       final entry = _entryFor(match.group(1)!);
 
-      // If this is an @search mention and we have a search resolver,
-      // delegate to it. Otherwise use the registered resolver entry.
-      if (match.group(1) == 'search' && searchResolver != null) {
-        // text before the mention survives (its leading space is dropped)
-        leftovers.write(input.substring(cursor, match.start));
-        cursor = match.end;
+      if (match.group(1) == 'search') {
+        final searchResolverLocal = searchResolver;
+        if (searchResolverLocal != null) {
+          // text before the mention survives (its leading space is dropped)
+          leftovers.write(input.substring(cursor, match.start));
+          cursor = match.end;
 
-        String? argument;
-        if (entry != null && entry.takesArgument) {
-          final rest = input.substring(cursor);
-          final trimmed = rest.trimLeft();
-          final gap = rest.length - trimmed.length;
-          final token = RegExp(r'^\S+').firstMatch(trimmed);
-          if (token != null) {
-            argument = token.group(0);
-            cursor += gap + token.end;
+          String? argument;
+          if (entry != null && entry.takesArgument) {
+            final rest = input.substring(cursor);
+            final trimmed = rest.trimLeft();
+            final gap = rest.length - trimmed.length;
+            final token = RegExp(r'^\S+').firstMatch(trimmed);
+            if (token != null) {
+              argument = token.group(0);
+              cursor += gap + token.end;
+            }
           }
-        }
 
-        final source = argument == null ? 'search' : 'search:$argument';
-        try {
-          expansions.addAll(await _resolveSearch(searchResolver!, argument ?? '', source));
-        } catch (e) {
-          expansions.add(_Expansion(source, null, '$e'));
+          final source = argument == null ? 'search' : 'search:$argument';
+          try {
+            final searchResult = await searchResolverLocal.resolve(argument ?? '');
+            sources.addAll(searchResult.sources);
+            expansions.addAll(await _resolveSearch(searchResult, source));
+          } catch (e) {
+            expansions.add(_Expansion(source, null, '$e'));
+          }
+          continue;
         }
-        continue;
       }
 
       // If this is an @fetch mention and we have a fetch resolver,
       // delegate to it. Otherwise use the registered resolver entry.
-      if (match.group(1) == 'fetch' && fetchResolver != null) {
-        leftovers.write(input.substring(cursor, match.start));
-        cursor = match.end;
+      if (match.group(1) == 'fetch') {
+        final fetchResolverLocal = fetchResolver;
+        if (fetchResolverLocal != null) {
+          leftovers.write(input.substring(cursor, match.start));
+          cursor = match.end;
 
-        String? argument;
-        if (entry != null && entry.takesArgument) {
-          final rest = input.substring(cursor);
-          final trimmed = rest.trimLeft();
-          final gap = rest.length - trimmed.length;
-          final token = RegExp(r'^\S+').firstMatch(trimmed);
-          if (token != null) {
-            argument = token.group(0);
-            cursor += gap + token.end;
+          String? argument;
+          if (entry != null && entry.takesArgument) {
+            final rest = input.substring(cursor);
+            final trimmed = rest.trimLeft();
+            final gap = rest.length - trimmed.length;
+            final token = RegExp(r'^\S+').firstMatch(trimmed);
+            if (token != null) {
+              argument = token.group(0);
+              cursor += gap + token.end;
+            }
           }
-        }
 
-        final source = argument == null ? 'fetch' : 'fetch:$argument';
-        try {
-          expansions.addAll(await _resolveFetch(fetchResolver!, argument ?? '', source));
-        } catch (e) {
-          expansions.add(_Expansion(source, null, '$e'));
+          final source = argument == null ? 'fetch' : 'fetch:$argument';
+          try {
+            final fetchResult = await fetchResolverLocal.resolve(argument ?? '');
+            sources.addAll(fetchResult.sources);
+            expansions.addAll(await _resolveFetch(fetchResult, source));
+          } catch (e) {
+            expansions.add(_Expansion(source, null, '$e'));
+          }
+          continue;
         }
-        continue;
       }
 
       if (entry == null) continue; // unknown → stays literal
@@ -199,6 +217,7 @@ class MentionResolver {
       requestContent: rendered.toString().trimRight(),
       blocks: List.unmodifiable(blocks),
       failures: List.unmodifiable(failures),
+      sources: sources,
     );
   }
 
@@ -209,33 +228,23 @@ class MentionResolver {
     return null;
   }
 
-  Future<List<_Expansion>> _resolveSearch(
-    SearchResolver searchResolver,
-    String argument,
-    String source,
-  ) async {
-    final result = await searchResolver.resolve(argument);
+  Future<List<_Expansion>> _resolveSearch(ResolveResult searchResult, String source) async {
     final blocks = <_Expansion>[];
-    for (final block in result.blocks) {
+    for (final block in searchResult.blocks) {
       blocks.add(_Expansion(source, block));
     }
-    for (final failure in result.failures) {
+    for (final failure in searchResult.failures) {
       blocks.add(_Expansion(source, null, failure.message));
     }
     return blocks;
   }
 
-  Future<List<_Expansion>> _resolveFetch(
-    FetchResolver fetchResolver,
-    String argument,
-    String source,
-  ) async {
-    final result = await fetchResolver.resolve(argument);
+  Future<List<_Expansion>> _resolveFetch(ResolveResult fetchResult, String source) async {
     final blocks = <_Expansion>[];
-    for (final block in result.blocks) {
+    for (final block in fetchResult.blocks) {
       blocks.add(_Expansion(source, block));
     }
-    for (final failure in result.failures) {
+    for (final failure in fetchResult.failures) {
       blocks.add(_Expansion(source, null, failure.message));
     }
     return blocks;

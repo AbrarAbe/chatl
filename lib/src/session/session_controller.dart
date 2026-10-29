@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import '../config/config.dart';
 import '../providers/provider.dart';
@@ -13,6 +14,8 @@ class Turn {
     required this.content,
     this.error = false,
     this.id,
+    this.sources,
+    this.requestContent,
   });
 
   final String role; // 'user' | 'assistant'
@@ -24,6 +27,10 @@ class Turn {
 
   /// Persisted message id; null for purely in-memory conversations.
   final String? id;
+
+  /// Citation sources from @search / @fetch resolution, written to
+  /// `messages.sources` on persist. Null when no sources were attached.
+  final List<Map<String, String>>? sources;
 
   /// What the provider sees for this turn when it differs from [content]
   /// (resolved `@` mentions). Null means "same as content" — e.g. turns
@@ -126,9 +133,21 @@ class SessionController {
     transcript.clear();
     for (final message in await store.activeBranch(session)) {
       transcript.add(
-        Turn(role: message.role, content: message.content, id: message.id),
+        Turn(
+          role: message.role,
+          content: message.content,
+          id: message.id,
+          sources: message.sources == null ? null : _decodeSources(message.sources!),
+          requestContent: message.content,
+        ),
       );
     }
+  }
+
+  /// Decodes the JSON sources string stored in the database.
+  static List<Map<String, String>> _decodeSources(String json) {
+    final List<dynamic> decoded = jsonDecode(json);
+    return decoded.cast<Map<String, dynamic>>().cast<Map<String, String>>();
   }
 
   /// A visible, non-persisted transcript note (`/context`, command notices).
@@ -165,9 +184,7 @@ class SessionController {
     for (final turn in transcript)
       HistoryEntry(
         role: turn.role,
-        preview: turn.content.length > 60
-            ? '${turn.content.substring(0, 60)}…'
-            : turn.content,
+        preview: turn.content.length > 60 ? '${turn.content.substring(0, 60)}…' : turn.content,
       ),
   ];
 
@@ -188,11 +205,7 @@ class SessionController {
       throw ArgumentError.value(turnId, 'turnId', 'unknown turn');
     }
     if (transcript[index].role != 'user') {
-      throw ArgumentError.value(
-        turnId,
-        'turnId',
-        'only user turns are editable',
-      );
+      throw ArgumentError.value(turnId, 'turnId', 'only user turns are editable');
     }
 
     final fork = await store.forkAt(session.id, turnId, text);
@@ -316,15 +329,22 @@ class SessionController {
 
     final profile = _config.models[_modelName]!;
 
-    _assignTurnId(transcript.length - 2, await _persistUserTurn(text));
-
     // `@` mentions expand client-side, before the request is built; the
     // transcript keeps the raw text the user typed (spec §The `@` resolver
     // layer). The resolved form rides on the turn so later requests never
     // leak the syntax either.
     final resolution = await _resolver.resolve(text);
-    transcript[transcript.length - 2].requestContent =
-        resolution.requestContent;
+    final userTurnIndex = transcript.length - 2;
+    transcript[userTurnIndex] = Turn(
+      role: 'user',
+      content: text,
+      id: transcript[userTurnIndex].id,
+      requestContent: resolution.requestContent,
+      sources: resolution.sources.isNotEmpty ? resolution.sources : null,
+    );
+
+    _assignTurnId(userTurnIndex, await _persistUserTurn(text, sources: resolution.sources));
+
     final request = StreamRequest(
       model: profile.model,
       messages: _conversationMessages(trailing: 1),
@@ -378,26 +398,18 @@ class SessionController {
   List<ChatMessage> _conversationMessages({int trailing = 0}) {
     final end = transcript.length - trailing;
     final messages = <ChatMessage>[
-      ChatMessage(
-        role: 'system',
-        content: _config.personas[_personaName] ?? '',
-      ),
+      ChatMessage(role: 'system', content: _config.personas[_personaName] ?? ''),
     ];
     for (var i = 0; i < end; i++) {
       final turn = transcript[i];
       if (turn.role != 'user' && turn.role != 'assistant') continue;
       if (turn.error) continue;
-      messages.add(
-        ChatMessage(
-          role: turn.role,
-          content: turn.requestContent ?? turn.content,
-        ),
-      );
+      messages.add(ChatMessage(role: turn.role, content: turn.requestContent ?? turn.content));
     }
     return messages;
   }
 
-  Future<Message?> _persistUserTurn(String text) async {
+  Future<Message?> _persistUserTurn(String text, {List<Map<String, String>>? sources}) async {
     final store = _store;
     final session = _session;
     if (store == null || session == null) return null;
@@ -405,6 +417,7 @@ class SessionController {
       sessionId: session.id,
       role: 'user',
       content: text,
+      sources: sources,
     );
     if (session.title.isEmpty || session.title == '(untitled)') {
       final title = text.length <= 60 ? text : text.substring(0, 60);
@@ -421,6 +434,8 @@ class SessionController {
       role: turn.role,
       content: turn.content,
       id: message.id,
+      requestContent: turn.requestContent,
+      sources: turn.sources,
     );
   }
 
