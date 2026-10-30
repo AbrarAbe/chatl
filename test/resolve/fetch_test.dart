@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:chatl/src/resolve/fetch.dart';
@@ -120,6 +121,20 @@ void main() {
         throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('no markdown'))),
       );
     });
+
+    test('times out when the scrape hangs', () async {
+      final client = MockClient((request) async {
+        // Never completes — simulates a hanging Firecrawl API.
+        await Future<void>.delayed(const Duration(hours: 1));
+        return http.Response('{}', 200);
+      });
+
+      final backend = FirecrawlFetchBackend(apiKey: 'test-key', client: client);
+      expect(
+        () async => backend.fetch('https://example.com'),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('timed out'))),
+      );
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 }
 

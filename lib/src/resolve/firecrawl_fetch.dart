@@ -10,11 +10,15 @@
 ///   Response: {"success": true, "data": {"markdown": "...", ...}}
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
 import 'fetch.dart';
+
+/// Default timeout for Firecrawl scrape requests (30 seconds).
+const Duration _kFirecrawlTimeout = Duration(seconds: 30);
 
 /// A `FetchBackend` that uses the Firecrawl scrape API to extract markdown
 /// from a URL.
@@ -42,8 +46,26 @@ class FirecrawlFetchBackend implements FetchBackend {
         'formats': ['markdown'],
       });
 
-    final response = await _client.send(request);
-    final body = await response.stream.bytesToString();
+    final response = await _client
+        .send(request)
+        .timeout(
+          _kFirecrawlTimeout,
+          onTimeout: () {
+            throw Exception(
+              'Firecrawl scrape timed out after '
+              '${_kFirecrawlTimeout.inSeconds}s for $url',
+            );
+          },
+        );
+    final body = await response.stream.bytesToString().timeout(
+      _kFirecrawlTimeout,
+      onTimeout: () {
+        throw Exception(
+          'Firecrawl scrape response timed out after '
+          '${_kFirecrawlTimeout.inSeconds}s for $url',
+        );
+      },
+    );
 
     if (response.statusCode >= 400) {
       throw Exception('Firecrawl scrape failed (${response.statusCode}): $body');
